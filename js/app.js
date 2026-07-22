@@ -2,17 +2,32 @@
 // in here as later phases add them; state and init() live here.
 'use strict';
 
-document.addEventListener('alpine:init', () => {
-    Alpine.data('manifest', () => ({
-        // ── Modules spread in ──
-        ...window.ManifestSettings,   // core/settings.js
-        ...window.ManifestFsPicker,   // core/fspicker.js
-        ...window.ManifestServiceUI,  // features/serviceui.js
-        ...window.ManifestDownloads,  // features/downloads.js
-        ...window.ManifestQuickAdd,   // features/quickadd.js
-        ...window.ManifestActions,    // features/actions.js
-        // features spread in later phases: queue, detail, update
+// Compose the component from module objects PRESERVING property descriptors, so
+// getters (e.g. downloads.js counts/visibleDownloads/agg) remain getters bound to
+// the live component `this`. A plain {...spread} INVOKES each getter at factory
+// time with the wrong `this` and flattens it to a static value — or throws,
+// aborting the whole component (the bug that left every binding, incl. quickAdd,
+// undefined). Object.defineProperties + getOwnPropertyDescriptors copies accessors
+// as accessors. Base literal passed last so its reactive state wins on collision.
+function composeData() {
+    const out = {};
+    for (let i = 0; i < arguments.length; i++) {
+        const src = arguments[i];
+        if (src) Object.defineProperties(out, Object.getOwnPropertyDescriptors(src));
+    }
+    return out;
+}
 
+document.addEventListener('alpine:init', () => {
+    Alpine.data('manifest', () => composeData(
+        window.ManifestSettings,    // core/settings.js
+        window.ManifestFsPicker,    // core/fspicker.js
+        window.ManifestServiceUI,   // features/serviceui.js
+        window.ManifestDownloads,   // features/downloads.js  (exposes getters)
+        window.ManifestQuickAdd,    // features/quickadd.js
+        window.ManifestActions,     // features/actions.js
+        // later phases: queue, detail, update, settings-ui
+    {
         // ── State ──
         ready: false,
         pluginVersion: '',

@@ -1,0 +1,142 @@
+<!-- detail.html — torrent/download detail dialog: General/Files/Peers/Trackers
+     as a horizontal Bootstrap tab strip (NOT a side rail — see the no-sidebar
+     rule). Injected into #manifest-partials by boot.js BEFORE Alpine starts
+     (same trick as confirm.html/quickadd.html/configure.html). Visibility is
+     driven through the Bootstrap Modal JS API; closing (X, backdrop, Esc)
+     stops the detail-scoped poll via the hidden.bs.modal listener below so a
+     dismissed dialog never keeps polling in the background. -->
+
+<div id="mfDetail" class="modal fade" tabindex="-1" x-data
+     x-init="detailModalEl = $el; $el.addEventListener('hidden.bs.modal', () => { detail.open = false; _detailStopPoll(); })">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-truncate" x-text="detailName()"></h5>
+                <button type="button" class="btn-close" @click="closeDetail()"></button>
+            </div>
+            <div class="modal-body">
+                <!-- horizontal tab strip -->
+                <ul class="nav nav-tabs">
+                    <li class="nav-item">
+                        <button type="button" class="nav-link" :class="detail.tab==='general' ? 'active' : ''"
+                                @click="detailSwitchTab('general')">General</button>
+                    </li>
+                    <li class="nav-item">
+                        <button type="button" class="nav-link" :class="detail.tab==='files' ? 'active' : ''"
+                                @click="detailSwitchTab('files')">Files</button>
+                    </li>
+                    <li class="nav-item">
+                        <button type="button" class="nav-link" :class="detail.tab==='peers' ? 'active' : ''"
+                                @click="detailSwitchTab('peers')">Peers</button>
+                    </li>
+                    <li class="nav-item">
+                        <button type="button" class="nav-link" :class="detail.tab==='trackers' ? 'active' : ''"
+                                @click="detailSwitchTab('trackers')">Trackers</button>
+                    </li>
+                </ul>
+
+                <div class="tab-content mt-3">
+                    <!-- General -->
+                    <div x-show="detail.tab==='general'">
+                        <dl class="row mb-0 small">
+                            <dt class="col-sm-3">Status</dt><dd class="col-sm-9" x-text="detail.data.status"></dd>
+                            <dt class="col-sm-3">Size</dt><dd class="col-sm-9" x-text="ManifestUtil.humanSize(detail.data.totalLength)"></dd>
+                            <dt class="col-sm-3">Progress</dt>
+                            <dd class="col-sm-9">
+                                <div class="progress" style="height:0.6rem; max-width: 20rem;">
+                                    <div class="progress-bar" role="progressbar" :style="'width:' + detailProgress() + '%'"></div>
+                                </div>
+                                <span class="text-body-secondary" x-text="detailProgress() + '%'"></span>
+                            </dd>
+                            <dt class="col-sm-3">Down / Up</dt>
+                            <dd class="col-sm-9" x-text="ManifestUtil.humanSpeed(detail.data.downloadSpeed) + ' / ' + ManifestUtil.humanSpeed(detail.data.uploadSpeed)"></dd>
+                            <dt class="col-sm-3">ETA</dt><dd class="col-sm-9" x-text="detailEta()"></dd>
+                            <dt class="col-sm-3">Ratio</dt><dd class="col-sm-9" x-text="detailRatio()"></dd>
+                            <dt class="col-sm-3">Save path</dt><dd class="col-sm-9" x-text="detail.data.dir"></dd>
+                            <dt class="col-sm-3">GID</dt><dd class="col-sm-9" x-text="detail.data.gid"></dd>
+                            <template x-if="detail.data.bittorrent && detail.data.bittorrent.info">
+                                <div class="col-12 contents">
+                                    <dt class="col-sm-3">Info hash</dt><dd class="col-sm-9" x-text="detail.data.infoHash"></dd>
+                                </div>
+                            </template>
+                            <template x-if="detail.data.errorMessage">
+                                <div class="col-12 contents">
+                                    <dt class="col-sm-3 text-danger">Error</dt><dd class="col-sm-9 text-danger" x-text="detail.data.errorMessage"></dd>
+                                </div>
+                            </template>
+                        </dl>
+                    </div>
+
+                    <!-- Files: editable per-file selection -->
+                    <div x-show="detail.tab==='files'">
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle mb-0">
+                                <thead><tr><th></th><th>Path</th><th>Size</th><th>Progress</th></tr></thead>
+                                <tbody>
+                                    <template x-for="f in detail.files" :key="f.index">
+                                        <tr>
+                                            <td><input class="form-check-input" type="checkbox" x-model="f.selected" @change="detailToggleFile(f)"></td>
+                                            <td class="text-truncate" style="max-width: 24rem;" :title="f.path" x-text="f.path"></td>
+                                            <td x-text="ManifestUtil.humanSize(f.length)"></td>
+                                            <td>
+                                                <div class="progress" style="height:0.5rem; max-width: 10rem;">
+                                                    <div class="progress-bar" role="progressbar" :style="'width:' + detailFileProgress(f) + '%'"></div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                    <tr x-show="!detail.files.length"><td colspan="4" class="text-body-secondary text-center py-3">No file list yet.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Peers -->
+                    <div x-show="detail.tab==='peers'">
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle mb-0">
+                                <thead><tr><th>Address</th><th>Client</th><th>↓</th><th>↑</th><th>Progress</th></tr></thead>
+                                <tbody>
+                                    <template x-for="(p, i) in detail.peers" :key="i">
+                                        <tr>
+                                            <td x-text="p.ip + ':' + p.port"></td>
+                                            <td x-text="p.client + (p.seeder ? ' (seed)' : '')"></td>
+                                            <td x-text="ManifestUtil.humanSpeed(p.downloadSpeed)"></td>
+                                            <td x-text="ManifestUtil.humanSpeed(p.uploadSpeed)"></td>
+                                            <td x-text="p.progress === null ? '—' : p.progress + '%'"></td>
+                                        </tr>
+                                    </template>
+                                    <tr x-show="!detail.peers.length"><td colspan="5" class="text-body-secondary text-center py-3">No peers connected.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Trackers (BT announce tiers + HTTP/FTP servers) -->
+                    <div x-show="detail.tab==='trackers'">
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle mb-0">
+                                <thead><tr><th>Tier</th><th>URL</th><th>Speed</th></tr></thead>
+                                <tbody>
+                                    <template x-for="(t, i) in detail.trackers" :key="i">
+                                        <tr>
+                                            <td x-text="t.tier ?? '—'"></td>
+                                            <td class="text-truncate" style="max-width: 26rem;" :title="t.url" x-text="t.url"></td>
+                                            <td x-text="t.kind==='server' ? ManifestUtil.humanSpeed(t.downloadSpeed) : ''"></td>
+                                        </tr>
+                                    </template>
+                                    <tr x-show="!detail.trackers.length"><td colspan="3" class="text-body-secondary text-center py-3">No trackers/servers.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-danger py-1 px-2 mt-2" x-show="detail.error" x-text="detail.error"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" @click="closeDetail()">Close</button>
+            </div>
+        </div>
+    </div>
+</div>

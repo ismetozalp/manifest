@@ -28,7 +28,8 @@ document.addEventListener('alpine:init', () => {
         window.ManifestActions,     // features/actions.js
         window.ManifestQueue,       // features/queue.js  (exposes `queue` state + a getter)
         window.ManifestConfigure,   // features/configure.js (Configure-on-Start, split out of queue.js)
-        // later phases: detail, update, settings-ui
+        window.ManifestDetail,      // features/detail.js  (General/Files/Peers/Trackers tabs)
+        // later phases: update, settings-ui
     {
         // ── State ──
         ready: false,

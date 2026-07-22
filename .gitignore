@@ -3,3 +3,6 @@ manifest-*.zip
 tests/*.png
 .superpowers/
 /tmp/
+
+# Planning/spec docs — not part of the shipped plugin
+docs/

@@ -3,7 +3,7 @@
 (function () {
     'use strict';
     var PARTIALS = [
-        // populated in later phases, e.g. 'html/modals/quickadd.html'
+        'html/modals/confirm.html'
     ];
     function loadScript(src) {
         return new Promise(function (resolve, reject) {

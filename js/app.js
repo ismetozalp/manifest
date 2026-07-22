@@ -9,8 +9,30 @@ document.addEventListener('alpine:init', () => {
         pluginVersion: '',
         home: '',
 
+        // ── Generic confirm dialog (drives #mfConfirmModal) ──
+        confirm: { open: false, title: '', message: '', resolve: null },
+
+        confirmDialog(title, message) {
+            return new Promise((resolve) => {
+                this.confirm = { open: true, title: title || 'Confirm', message: message || '', resolve };
+            });
+        },
+
+        _confirmOk() {
+            const resolve = this.confirm.resolve;
+            this.confirm.open = false;
+            if (resolve) resolve(true);
+        },
+
+        _confirmCancel() {
+            const resolve = this.confirm.resolve;
+            this.confirm.open = false;
+            if (resolve) resolve(false);
+        },
+
         // ── Modules spread in ──
         ...window.ManifestSettings,
+        ...window.ManifestFsPicker,
 
         // ── Lifecycle ──
         async init() {

@@ -1,0 +1,80 @@
+<!-- confirm.html — generic confirm dialog + server-side folder-picker modal.
+     Injected into #manifest-partials by boot.js BEFORE Alpine starts, so
+     these are live x-data bindings on the `manifest` component. -->
+
+<!-- ===== Generic confirm dialog ===== -->
+<div id="mfConfirmModal" class="modal" tabindex="-1" x-show="confirm.open" x-cloak
+     @keydown.escape.window="confirm.open && _confirmCancel()">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" x-text="confirm.title"></h5>
+                <button type="button" class="btn-close" @click="_confirmCancel()"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0" x-text="confirm.message"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" @click="_confirmCancel()">Cancel</button>
+                <button type="button" class="btn btn-danger" @click="_confirmOk()">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal-backdrop" x-show="confirm.open" x-cloak></div>
+
+<!-- ===== Server-side folder picker (no sidebar: breadcrumb + single list) ===== -->
+<div id="mfFolderPicker" class="modal" tabindex="-1" data-bs-keyboard="false" x-show="fsPicker.open" x-cloak>
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Choose a folder</h5>
+                <button type="button" class="btn-close" @click="_fpCancel()"></button>
+            </div>
+            <div class="modal-body">
+                <!-- breadcrumb -->
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb flex-wrap">
+                        <template x-for="(seg, idx) in _fpBreadcrumb()" :key="idx">
+                            <li class="breadcrumb-item">
+                                <a href="#" @click.prevent="_fpGoto(idx)" x-text="seg.label"></a>
+                            </li>
+                        </template>
+                    </ol>
+                </nav>
+
+                <!-- inline error -->
+                <div class="alert alert-danger py-1 px-2 mb-2" x-show="fsPicker.error" x-text="fsPicker.error"></div>
+
+                <!-- single folder list, no sidebar -->
+                <div class="list-group mf-fp-list" style="max-height: 320px; overflow-y: auto;">
+                    <template x-for="name in fsPicker.entries" :key="name">
+                        <button type="button" class="list-group-item list-group-item-action"
+                                @dblclick="_fpEnter(name)"
+                                @click="fsPicker.selected = name">
+                            <span x-text="name"></span>
+                        </button>
+                    </template>
+                    <div class="list-group-item text-body-secondary" x-show="!fsPicker.entries.length && !fsPicker.error">
+                        (no subfolders)
+                    </div>
+                </div>
+
+                <!-- New folder -->
+                <div class="input-group mt-2">
+                    <input type="text" class="form-control" placeholder="New folder name"
+                           x-model="fsPicker.newFolderName" @keydown.enter.prevent="_fpNewFolder(fsPicker.newFolderName)">
+                    <button type="button" class="btn btn-outline-secondary" @click="_fpNewFolder(fsPicker.newFolderName)">
+                        New folder
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <span class="me-auto text-body-secondary small" x-text="fsPicker.cwd"></span>
+                <button type="button" class="btn btn-secondary" @click="_fpCancel()">Cancel</button>
+                <button type="button" class="btn btn-primary" @click="_fpChoose()">Choose</button>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal-backdrop" x-show="fsPicker.open" x-cloak></div>

@@ -1,0 +1,99 @@
+<!-- configure.html — Configure-on-Start dialog for a staged queue item.
+     Every item type asks for a destination first; magnet/torrent items then
+     add themselves to aria2 PAUSED, poll for metadata/file list ("fetching
+     metadata…" for magnets), and let the user choose which files to grab
+     before unpausing. Cancel at any point removes the paused probe download
+     (never leaves an orphaned paused item behind) — including on a metadata
+     fetch timeout (spec §13). Injected into #manifest-partials by boot.js
+     BEFORE Alpine starts. Visibility is driven through the Bootstrap Modal
+     JS API (like confirm.html/quickadd.html) — actually nulling
+     queue.configuring happens in the hidden.bs.modal listener below so the
+     dialog's own content doesn't blank out mid-close-animation. -->
+
+<div id="mfConfigure" class="modal fade" tabindex="-1" x-data data-bs-backdrop="static" data-bs-keyboard="false"
+     x-init="configureModalEl = $el; $el.addEventListener('hidden.bs.modal', () => { queue.configuring = null; })">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" x-show="queue.configuring" x-cloak>
+            <template x-if="queue.configuring">
+                <div>
+                    <div class="modal-header">
+                        <h5 class="modal-title d-flex align-items-center gap-2">
+                            <span x-text="qIcon(queue.configuring.item.type)"></span>
+                            <span>Configure</span>
+                            <span class="small text-body-secondary text-truncate" style="max-width: 26rem;" x-text="queue.configuring.item.raw"></span>
+                        </h5>
+                        <button type="button" class="btn-close" @click="cfgCancel()"></button>
+                    </div>
+                    <div class="modal-body">
+                        <template x-if="queue.configuring.stage === 'destination'">
+                            <div>
+                                <label class="form-label mb-1">Destination</label>
+                                <div class="d-flex flex-wrap gap-2 align-items-center">
+                                    <template x-for="b in (settings.destinations.bookmarks || [])" :key="b.id">
+                                        <button type="button" class="btn btn-sm"
+                                                :class="queue.configuring.dir===b.path ? 'btn-primary' : 'btn-outline-secondary'"
+                                                @click="_cfgSetDest(b.path)" x-text="b.label"></button>
+                                    </template>
+                                    <template x-for="r in (settings.destinations.recents || []).slice(0,5)" :key="r">
+                                        <button type="button" class="btn btn-sm"
+                                                :class="queue.configuring.dir===r ? 'btn-primary' : 'btn-outline-secondary'"
+                                                @click="_cfgSetDest(r)" x-text="r"></button>
+                                    </template>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" @click="_cfgBrowseDest()">Browse…</button>
+                                </div>
+                                <div class="text-body-secondary small mt-1" x-text="queue.configuring.dir"></div>
+                                <p class="text-body-secondary small mt-2 mb-0" x-show="needsFileSelect(queue.configuring.item)">
+                                    Starting will add this <span x-text="queue.configuring.item.type"></span> paused and
+                                    <span x-text="queue.configuring.item.type === 'magnet' ? 'fetch its metadata' : 'read its file list'"></span>
+                                    so you can choose which files to grab.
+                                </p>
+                            </div>
+                        </template>
+
+                        <template x-if="queue.configuring.stage === 'resolving'">
+                            <div class="text-center py-4">
+                                <div class="spinner-border text-primary mb-2" role="status"></div>
+                                <p class="mb-0" x-text="queue.configuring.item.type === 'magnet' ? 'Fetching metadata…' : 'Reading file list…'"></p>
+                            </div>
+                        </template>
+
+                        <template x-if="queue.configuring.stage === 'timeout'">
+                            <div class="alert alert-warning mb-0" x-text="queue.configuring.error"></div>
+                        </template>
+
+                        <template x-if="queue.configuring.stage === 'files'">
+                            <div>
+                                <div class="d-flex align-items-center gap-2 mb-2">
+                                    <label class="form-label mb-0">Files</label>
+                                    <button type="button" class="btn btn-sm btn-link" @click="cfgSelectAll(true)">Select all</button>
+                                    <button type="button" class="btn btn-sm btn-link" @click="cfgSelectAll(false)">Select none</button>
+                                </div>
+                                <div class="mf-cfg-files" style="max-height:260px; overflow-y:auto;">
+                                    <template x-for="f in queue.configuring.files" :key="f.index">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" :id="'cfgFile'+f.index" x-model="f.selected">
+                                            <label class="form-check-label small" :for="'cfgFile'+f.index">
+                                                <span x-text="f.path"></span>
+                                                <span class="text-body-secondary" x-text="'(' + ManifestUtil.humanSize(f.length) + ')'"></span>
+                                            </label>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+
+                        <div class="alert alert-danger py-1 px-2 mt-2" x-show="queue.configuring.error && queue.configuring.stage !== 'timeout'" x-text="queue.configuring.error"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @click="cfgCancel()">Cancel</button>
+                        <button type="button" class="btn btn-outline-secondary" x-show="queue.configuring.stage === 'timeout'" @click="cfgRetry()">Retry</button>
+                        <button type="button" class="btn btn-primary" x-show="queue.configuring.stage === 'destination'"
+                                :disabled="queue.configuring.busy" @click="cfgStart()">Start</button>
+                        <button type="button" class="btn btn-primary" x-show="queue.configuring.stage === 'files'"
+                                :disabled="queue.configuring.busy" @click="cfgConfirmFiles()">Start download</button>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
+</div>

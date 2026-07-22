@@ -147,7 +147,7 @@
 
         get counts() {
             const c = { all: 0, active: 0, waiting: 0, paused: 0, complete: 0, error: 0 };
-            c.queue = (this.queue && this.queue.length) || 0; // Phase 5 staging list
+            c.queue = (this.queue && this.queue.items && this.queue.items.length) || 0; // Phase 5 staging list
             for (const gid in this.downloads) {
                 const d = this.downloads[gid];
                 c.all++;

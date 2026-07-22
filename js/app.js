@@ -26,7 +26,9 @@ document.addEventListener('alpine:init', () => {
         window.ManifestDownloads,   // features/downloads.js  (exposes getters)
         window.ManifestQuickAdd,    // features/quickadd.js
         window.ManifestActions,     // features/actions.js
-        // later phases: queue, detail, update, settings-ui
+        window.ManifestQueue,       // features/queue.js  (exposes `queue` state + a getter)
+        window.ManifestConfigure,   // features/configure.js (Configure-on-Start, split out of queue.js)
+        // later phases: detail, update, settings-ui
     {
         // ── State ──
         ready: false,
@@ -62,8 +64,10 @@ document.addEventListener('alpine:init', () => {
         // openQuickAdd() is now the real implementation from
         // ...window.ManifestQuickAdd spread in above. openRowMenu()/
         // closeContextMenu() are now the real implementations from
-        // ...window.ManifestActions spread in above.
-        openPaste() {},
+        // ...window.ManifestActions spread in above. openPaste() is now the
+        // real implementation from ...window.ManifestQueue spread in above
+        // (must NOT be redeclared here — composeData's base literal is
+        // spread last, so an empty stub here would silently clobber it).
         openSettings() {},
         onKey() {},
 
@@ -98,6 +102,10 @@ document.addEventListener('alpine:init', () => {
         async init() {
             try { this.pluginVersion = (await this._readVersion()) || ''; } catch (e) {}
             try { this.home = await FS.homeDir(); } catch (e) {}
+            // Staging queue is loaded independently of aria2/service state —
+            // it must be usable (view + Paste to Queue) even before Setup
+            // has ever run (spec §6.2 persistence works offline).
+            try { await this._loadQueue(); } catch (e) {}
             try { await this._loadSettings(); } catch (e) {}
             try { await this._refreshServiceState(); } catch (e) { console.error('[manifest] initial service state check failed:', e); }
             this._startServicePoll();

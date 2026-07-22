@@ -1,0 +1,60 @@
+<!-- paste.html — Paste-to-Queue staging modal. One entry per line (magnet /
+     http / ftp / metalink), plus drag-dropped .torrent files. Mixed sources
+     are first-class: every line/file is classified independently and the
+     preview list shows each one's detected type before anything is staged —
+     there is no "this batch is all torrents" mode. Nothing is sent to aria2
+     here — Add to queue only appends to the persisted staging queue
+     (queue.json); Configure-on-Start (configure.html) is where an item
+     actually reaches aria2. Injected into #manifest-partials by boot.js
+     BEFORE Alpine starts (same trick as confirm.html/quickadd.html). -->
+
+<div id="mfPaste" class="modal fade" tabindex="-1" x-data data-bs-backdrop="static"
+     x-init="pasteModalEl = $el">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Paste to Queue</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <label class="form-label mb-1" for="pasteText">Magnet links / URLs / Metalinks (one per line)</label>
+                <textarea id="pasteText" class="form-control" rows="5"
+                          placeholder="magnet:?xt=...&#10;https://example.com/file.iso&#10;https://example.com/job.metalink"
+                          x-model="queue.pasteText"></textarea>
+
+                <!-- .torrent drop zone + Browse -->
+                <div class="mf-dropzone border rounded p-3 text-center mt-2"
+                     :class="queue.dragOver ? 'border-primary bg-body-tertiary' : 'border-secondary-subtle'"
+                     @dragover.prevent="queue.dragOver = true"
+                     @dragleave.prevent="queue.dragOver = false"
+                     @drop.prevent="_pasteDrop($event)">
+                    <p class="mb-2 text-body-secondary">Drag &amp; drop <code>.torrent</code> files here, or</p>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" @click="$refs.pasteFileInput.click()">Browse…</button>
+                    <input type="file" x-ref="pasteFileInput" accept=".torrent" multiple class="d-none" @change="_pasteFiles($event)">
+                </div>
+
+                <!-- preview: every line/file, type shown individually — mixed sources are first-class -->
+                <div class="mt-3" x-show="pastePreview.length">
+                    <label class="form-label mb-1">Preview</label>
+                    <div class="mf-paste-preview list-group" style="max-height:200px; overflow-y:auto;">
+                        <template x-for="(p, idx) in pastePreview" :key="idx">
+                            <div class="list-group-item d-flex align-items-center gap-2 py-1">
+                                <span x-text="qIcon(p.type)"></span>
+                                <span class="text-truncate flex-grow-1 small" :title="p.raw" x-text="p.raw"></span>
+                                <span class="badge" :class="p.type === 'unknown' ? 'text-bg-danger' : 'text-bg-secondary'" x-text="p.type"></span>
+                                <button type="button" class="btn btn-sm btn-link text-danger py-0 px-1" x-show="p.kind === 'torrent'"
+                                        title="Remove" @click="_pasteRemoveTorrent(p.idx)">&times;</button>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <div class="alert alert-danger py-1 px-2 mt-2" x-show="queue.pasteError" x-text="queue.pasteError"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" @click="confirmPaste()">Add to queue</button>
+            </div>
+        </div>
+    </div>
+</div>

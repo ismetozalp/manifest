@@ -4,7 +4,9 @@
     'use strict';
     var PARTIALS = [
         'html/modals/confirm.html',
-        'html/modals/quickadd.html'
+        'html/modals/quickadd.html',
+        'html/modals/paste.html',
+        'html/modals/configure.html'
     ];
     function loadScript(src) {
         return new Promise(function (resolve, reject) {

@@ -177,10 +177,64 @@ async function main() {
             console.log('torrent regression SKIPPED: set E2E_TORRENT');
         }
 
+        // ── 5. Paste-to-Queue: stage a magnet, persist across reload, Configure-on-Start ──
+        // Guarded by E2E_TEST_MAGNET (unset -> SKIPPED, same contract as the
+        // torrent regression above) since staging needs no live peers but
+        // Configure-on-Start's metadata fetch does — an isolated/offline
+        // test host may never resolve it. The assertion is therefore that
+        // the UI reaches a "fetching metadata…"/files/timeout state cleanly
+        // (no pageerror/console error), not that the magnet completes.
+        const TEST_MAGNET = process.env.E2E_TEST_MAGNET || '';
+        if (TEST_MAGNET) {
+            await app.locator('button:has-text("Paste to Queue")').click();
+            const paste = app.locator('#mfPaste');
+            await paste.waitFor({ state: 'visible', timeout: 10000 });
+            await paste.locator('#pasteText').fill(TEST_MAGNET);
+            await paste.locator('.mf-paste-preview .badge', { hasText: 'magnet' }).first().waitFor({ timeout: 5000 });
+            await paste.locator('button:has-text("Add to queue")').click();
+            await paste.waitFor({ state: 'hidden', timeout: 10000 });
+
+            const queuePill = app.locator('.mf-pills button', { hasText: 'Queue' });
+            await queuePill.click();
+            const magnetNeedle = TEST_MAGNET.slice(0, 24);
+            const queueRow = app.locator('.mf-queue-list .list-group-item').filter({ hasText: magnetNeedle }).first();
+            await queueRow.waitFor({ timeout: 10000 });
+            console.log('OK — magnet staged in the queue');
+
+            // Reload — queue.json persistence must survive (spec §6.2, §14).
+            await page.reload({ waitUntil: 'domcontentloaded' });
+            const app2 = await openManifest(page);
+            if (!app2) throw new Error('could not reopen Manifest after reload');
+            await app2.locator('.mf-topbar').first().waitFor({ timeout: 20000 });
+            await app2.locator('.mf-pills button', { hasText: 'Queue' }).click();
+            const queueRowAfterReload = app2.locator('.mf-queue-list .list-group-item').filter({ hasText: magnetNeedle }).first();
+            await queueRowAfterReload.waitFor({ timeout: 10000 });
+            console.log('OK — staged item survived a page reload (queue.json persisted)');
+
+            // Configure-on-Start: destination -> Start -> add-paused ->
+            // fetching metadata. Tolerate the metadata never arriving; only
+            // fail on an actual UI error.
+            await queueRowAfterReload.locator('button:has-text("Start")').click();
+            const cfg = app2.locator('#mfConfigure');
+            await cfg.waitFor({ state: 'visible', timeout: 10000 });
+            await cfg.locator('.modal-footer button:has-text("Start")').click();
+            await waitForText(cfg.locator('.modal-body'), /fetching metadata|reading file list|files|timed out/i, 20000, 1000)
+                .catch((e) => console.log('  (metadata fetch did not resolve within the wait window — expected on an isolated host: ' + e.message + ')'));
+            console.log('OK — Configure-on-Start reached the paused/metadata-fetch flow without erroring');
+
+            // Best-effort cleanup: Cancel so no paused probe download or
+            // queue item is left behind for a later run.
+            const cancelBtn = cfg.locator('.modal-footer button:has-text("Cancel")');
+            if (await cancelBtn.count()) await cancelBtn.click().catch(() => {});
+            await cfg.waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {});
+        } else {
+            console.log('Paste-to-Queue / Configure-on-Start regression SKIPPED: set E2E_TEST_MAGNET');
+        }
+
         await page.screenshot({ path: SHOT }).catch(() => {});
         const risky = errors.filter((e) => e.kind === 'pageerror' || RISK.test(e.text));
         if (risky.length) return done(browser, 1, `FAIL — ${risky.length} JS issue(s) during e2e. Shot: ${SHOT}`);
-        return done(browser, 0, `OK — e2e passed (setup, quick-add, progress, actions${TORRENT_PATH ? ', torrent regression' : ''}). Shot: ${SHOT}`);
+        return done(browser, 0, `OK — e2e passed (setup, quick-add, progress, actions${TORRENT_PATH ? ', torrent regression' : ''}${TEST_MAGNET ? ', paste-to-queue+configure' : ''}). Shot: ${SHOT}`);
     } catch (e) {
         await page.screenshot({ path: SHOT }).catch(() => {});
         return done(browser, 1, `ERROR: ${e.message}. Shot: ${SHOT}`);

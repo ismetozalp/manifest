@@ -15,7 +15,10 @@
     <span class="mf-version badge text-bg-secondary" x-show="pluginVersion" x-text="'v'+pluginVersion"></span>
     <div class="ms-auto d-flex align-items-center gap-2">
         <button class="btn btn-sm btn-primary" x-show="svc.active" @click="openQuickAdd && openQuickAdd()">+ Quick Add</button>
-        <button class="btn btn-sm btn-outline-secondary" x-show="svc.active" @click="openPaste && openPaste()">Paste to Queue</button>
+        <!-- Paste-to-Queue only stages items (queue.json) — it never talks to
+             aria2 — so it stays usable even before Setup / while aria2 is
+             stopped, unlike Quick Add which starts downloads immediately. -->
+        <button class="btn btn-sm btn-outline-secondary" @click="openPaste && openPaste()">Paste to Queue</button>
         <button class="btn btn-sm btn-link" @click="openSettings && openSettings()" title="Settings">⚙</button>
     </div>
 </header>
@@ -40,16 +43,43 @@
     <pre class="mf-setup-log ms-3 flex-grow-1 mb-0" x-show="svc.log" x-text="svc.log"></pre>
 </div>
 
-<!-- FILTER PILLS (horizontal row — NOT a sidebar) -->
-<nav class="mf-pills d-flex flex-wrap gap-2 px-3 py-2" x-show="svc.active">
+<!-- FILTER PILLS (horizontal row — NOT a sidebar). Shown even before aria2 is
+     set up / while it's stopped so the Queue pill (staging only, no aria2
+     needed) stays reachable. -->
+<nav class="mf-pills d-flex flex-wrap gap-2 px-3 py-2">
     <template x-for="p in filterPills" :key="p.key">
         <button class="btn btn-sm" :class="activeFilter===p.key ? 'btn-primary' : 'btn-outline-secondary'"
                 @click="activeFilter=p.key" x-text="p.label + ' (' + (counts[p.key]||0) + ')'"></button>
     </template>
 </nav>
 
+<!-- QUEUE VIEW (staging queue — its own filter pill). Works even with aria2
+     offline: staging is pure local persistence (queue.json), no RPC. -->
+<section class="mf-queue px-3" x-show="activeFilter === 'queue'">
+    <div class="d-flex align-items-center gap-2 py-2">
+        <button class="btn btn-sm btn-primary" :disabled="!svc.active || !queue.items.length" @click="startAll()">Start all</button>
+        <button class="btn btn-sm btn-outline-danger" :disabled="!queue.items.length" @click="clearQueue()">Clear</button>
+        <span class="text-body-secondary small ms-auto" x-text="queue.items.length + ' staged'"></span>
+    </div>
+    <div class="list-group mf-queue-list">
+        <template x-for="it in queue.items" :key="it.id">
+            <div class="list-group-item d-flex align-items-center gap-2">
+                <span x-text="qIcon(it.type)"></span>
+                <span class="text-truncate flex-grow-1" :title="it.raw" x-text="it.raw"></span>
+                <span class="badge text-bg-secondary" x-text="it.status || 'staged'"></span>
+                <button class="btn btn-sm btn-outline-primary" :disabled="!svc.active" title="aria2 must be running to start"
+                        @click="startItem(it)">Start</button>
+                <button class="btn btn-sm btn-outline-danger" @click="removeItem(it)">Remove</button>
+            </div>
+        </template>
+        <div class="list-group-item text-body-secondary text-center py-4" x-show="!queue.items.length">
+            Queue is empty. Use Paste to Queue to stage magnets, URLs, metalinks, or .torrent files.
+        </div>
+    </div>
+</section>
+
 <!-- UNIFIED TABLE (one row per download) -->
-<main class="mf-main px-3" x-show="svc.active">
+<main class="mf-main px-3" x-show="svc.active && activeFilter !== 'queue'">
     <table class="table table-sm mf-table align-middle">
         <thead><tr>
             <th></th><th @click="sortBy('name')">Name</th><th @click="sortBy('size')">Size</th>
@@ -129,6 +159,7 @@
 <!-- module scripts, dependency order: pure → fs → core → features → app → boot -->
 <script src="js/util.js"></script>
 <script src="js/core/detect.js"></script>
+<script src="js/core/queuemodel.js"></script>
 <script src="js/core/rpcenvelope.js"></script>
 <script src="js/core/aria2conf.js"></script>
 <script src="js/core/portpick.js"></script>
@@ -146,6 +177,8 @@
 <script src="js/features/downloads.js"></script>
 <script src="js/features/quickadd.js"></script>
 <script src="js/features/actions.js"></script>
+<script src="js/features/queue.js"></script>
+<script src="js/features/configure.js"></script>
 <script src="js/app.js"></script>
 <script src="js/boot.js"></script>
 </body>

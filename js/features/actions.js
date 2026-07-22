@@ -171,7 +171,9 @@
                     await this.rpc.removeDownloadResult(t.gid).catch(() => {});
                     delete this.downloads[t.gid];
                     if (paths.length) {
-                        await FS.spawn(['rm', '-f', ...paths]);
+                        // `--` terminates option parsing so a torrent-controlled
+                        // filename that begins with '-' can't smuggle flags into rm.
+                        await FS.spawn(['rm', '-f', '--', ...paths]);
                     }
                 } catch (e) {
                     this.toast('Remove & delete failed: ' + e.message, 'danger');

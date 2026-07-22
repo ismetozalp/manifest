@@ -27,8 +27,10 @@
     }
 
     // Bridge Lesson #3: use `cat` via spawn, not cockpit.file().read().
+    // `--` terminates option parsing so a path beginning with '-' can't be
+    // read as a flag (defense-in-depth; manifest paths are absolute anyway).
     async function readText(path) {
-        return spawn(['cat', path]);
+        return spawn(['cat', '--', path]);
     }
 
     async function writeText(path, text) {
@@ -43,17 +45,17 @@
     // process umask (often 0644/0664), so we chmod immediately after the write.
     async function writeSecret(path, text) {
         await writeText(path, text);
-        await spawn(['chmod', '600', path]);
+        await spawn(['chmod', '600', '--', path]);
     }
 
     // Restrict a directory to owner-only (0700) — used for the manifest config
-    // dir that holds the secret-bearing files.
+    // dir that holds the secret-bearing files. `--` guards a '-'-leading path.
     async function chmod(mode, path) {
-        return spawn(['chmod', mode, path]);
+        return spawn(['chmod', mode, '--', path]);
     }
 
     async function mkdir(path) {
-        return spawn(['mkdir', '-p', path]);
+        return spawn(['mkdir', '-p', '--', path]);
     }
 
     async function exists(path) {

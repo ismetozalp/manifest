@@ -7,10 +7,16 @@ document.addEventListener('alpine:init', () => {
         // ── State ──
         ready: false,
         pluginVersion: '',
+        home: '',
+
+        // ── Modules spread in ──
+        ...window.ManifestSettings,
 
         // ── Lifecycle ──
         async init() {
             try { this.pluginVersion = (await this._readVersion()) || ''; } catch (e) {}
+            try { this.home = await FS.homeDir(); } catch (e) {}
+            try { await this._loadSettings(); } catch (e) {}
             this.ready = true;
         },
 

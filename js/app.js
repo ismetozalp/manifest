@@ -29,7 +29,8 @@ document.addEventListener('alpine:init', () => {
         window.ManifestQueue,       // features/queue.js  (exposes `queue` state + a getter)
         window.ManifestConfigure,   // features/configure.js (Configure-on-Start, split out of queue.js)
         window.ManifestDetail,      // features/detail.js  (General/Files/Peers/Trackers tabs)
-        // later phases: update, settings-ui
+        window.ManifestUpdate,      // features/update.js  (version badge state + self-update)
+        window.ManifestSettingsUI,  // features/settings-ui.js  (Settings modal)
     {
         // ── State ──
         ready: false,
@@ -66,10 +67,12 @@ document.addEventListener('alpine:init', () => {
         // ...window.ManifestQuickAdd spread in above. openRowMenu()/
         // closeContextMenu() are now the real implementations from
         // ...window.ManifestActions spread in above. openPaste() is now the
-        // real implementation from ...window.ManifestQueue spread in above
-        // (must NOT be redeclared here — composeData's base literal is
-        // spread last, so an empty stub here would silently clobber it).
-        openSettings() {},
+        // real implementation from ...window.ManifestQueue spread in above.
+        // openSettings() is now the real implementation from
+        // ...window.ManifestSettingsUI spread in above (must NOT be
+        // redeclared here — composeData's base literal is spread last, so an
+        // empty stub here would silently clobber it, exactly like openPaste
+        // before).
         onKey() {},
 
         // ── Generic confirm dialog (drives #mfConfirmModal) ──
@@ -108,6 +111,7 @@ document.addEventListener('alpine:init', () => {
             // has ever run (spec §6.2 persistence works offline).
             try { await this._loadQueue(); } catch (e) {}
             try { await this._loadSettings(); } catch (e) {}
+            try { await this._maybeCheckUpdateOnStartup(); } catch (e) { console.error('[manifest] startup update check failed:', e); }
             try { await this._refreshServiceState(); } catch (e) { console.error('[manifest] initial service state check failed:', e); }
             this._startServicePoll();
             // Download polling tracks svc.active reactively (turnkey setup,

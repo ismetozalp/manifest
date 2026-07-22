@@ -5,6 +5,7 @@
     <title>Manifest</title>
     <link rel="stylesheet" href="css/bootstrap.min.css">
     <link rel="stylesheet" href="css/manifest.css">
+    <link rel="stylesheet" href="css/themes.css">
     <script src="../base1/cockpit.js"></script>
 </head>
 <body x-data="manifest" x-init="init()" @keydown.window="onKey && onKey($event)" @click.window="closeContextMenu && closeContextMenu()">
@@ -12,7 +13,17 @@
 <!-- TOP BAR -->
 <header class="mf-topbar d-flex align-items-center gap-2 px-3 py-2">
     <span class="mf-title fw-bold">Manifest</span>
-    <span class="mf-version badge text-bg-secondary" x-show="pluginVersion" x-text="'v'+pluginVersion"></span>
+    <!-- Version badge: grey "vX.Y.Z" normally; green "↑ Manifest vX.Y.Z" + clickable
+         (starts the self-update flow) once updateState.available flips true.
+         Click otherwise triggers a manual update check. updateState/
+         checkForUpdate/startSelfUpdate come from features/update.js. -->
+    <button type="button" class="mf-version badge border-0"
+            :class="(updateState && updateState.available) ? 'text-bg-success' : 'text-bg-secondary'"
+            x-show="pluginVersion"
+            :disabled="updateState && updateState.checking"
+            :title="(updateState && updateState.error) ? ('Update check failed: ' + updateState.error) : ((updateState && updateState.available) ? 'Update available — click to install' : 'Click to check for updates')"
+            @click="(updateState && updateState.available) ? (startSelfUpdate && startSelfUpdate()) : (checkForUpdate && checkForUpdate(true))"
+            x-text="(updateState && updateState.checking) ? 'Checking…' : ((updateState && updateState.available) ? ('↑ Manifest v' + updateState.latestVersion) : ('v' + pluginVersion))"></button>
     <div class="ms-auto d-flex align-items-center gap-2">
         <button class="btn btn-sm btn-primary" x-show="svc.active" @click="openQuickAdd && openQuickAdd()">+ Quick Add</button>
         <!-- Paste-to-Queue only stages items (queue.json) — it never talks to
@@ -175,6 +186,7 @@
 <script src="js/core/systemctl.js"></script>
 <script src="js/core/service.js"></script>
 <script src="js/core/destlist.js"></script>
+<script src="js/core/themes.js"></script>
 <script src="js/core/settings.js"></script>
 <script src="js/core/fspicker.js"></script>
 <script src="js/features/serviceui.js"></script>
@@ -184,6 +196,8 @@
 <script src="js/features/queue.js"></script>
 <script src="js/features/configure.js"></script>
 <script src="js/features/detail.js"></script>
+<script src="js/features/update.js"></script>
+<script src="js/features/settings-ui.js"></script>
 <script src="js/app.js"></script>
 <script src="js/boot.js"></script>
 </body>

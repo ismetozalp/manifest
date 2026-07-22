@@ -7,7 +7,8 @@
         'html/modals/quickadd.html',
         'html/modals/paste.html',
         'html/modals/configure.html',
-        'html/modals/detail.html'
+        'html/modals/detail.html',
+        'html/modals/settings.html'
     ];
     function loadScript(src) {
         return new Promise(function (resolve, reject) {

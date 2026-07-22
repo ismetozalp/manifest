@@ -144,13 +144,20 @@
 
         const cfgDir = configDir(home);
         await FS.mkdir(cfgDir);
+        // The config dir holds the rpc-secret (in aria2.conf) — restrict it to
+        // owner-only so other local users can't read the secret that gates the
+        // loopback aria2 RPC.
+        await FS.chmod('700', cfgDir);
         // input-file must already exist or aria2 refuses to start with it set.
-        await FS.spawn(['touch', Util.joinPath(cfgDir, 'aria2.session')]);
+        const sessionPath = Util.joinPath(cfgDir, 'aria2.session');
+        await FS.spawn(['touch', sessionPath]);
+        await FS.chmod('600', sessionPath);
 
         const limits = Defaults.toAria2GlobalOptions(settings);
         const confText = Aria2Conf.confText({ home, port, secret, dir, limits });
         const confPath = Util.joinPath(cfgDir, 'aria2.conf');
-        await FS.writeText(confPath, confText);
+        // aria2.conf embeds rpc-secret — write it owner-only (0600).
+        await FS.writeSecret(confPath, confText);
 
         const unitDir = systemdUserDir(home);
         await FS.mkdir(unitDir);

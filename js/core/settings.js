@@ -37,9 +37,12 @@
         },
 
         async _writeSettingsYaml() {
-            await FS.mkdir(this._settingsDir());
+            const dir = this._settingsDir();
+            await FS.mkdir(dir);
+            await FS.chmod('700', dir);
             const text = jsyaml.dump(this.settings, { indent: 2 });
-            await FS.writeText(this._settingsPath(), text);
+            // settings.yml holds rpc.secret — write it owner-only (0600).
+            await FS.writeSecret(this._settingsPath(), text);
         },
 
         saveSettings() {

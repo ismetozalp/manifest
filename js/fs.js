@@ -37,6 +37,21 @@
         await cockpit.file(path).replace(text == null ? '' : text);
     }
 
+    // Write a file that contains a credential (e.g. the aria2 rpc-secret) with
+    // owner-only permissions (0600), so other local users can't read the secret
+    // that gates the loopback aria2 RPC. cockpit.file().replace() honours the
+    // process umask (often 0644/0664), so we chmod immediately after the write.
+    async function writeSecret(path, text) {
+        await writeText(path, text);
+        await spawn(['chmod', '600', path]);
+    }
+
+    // Restrict a directory to owner-only (0700) — used for the manifest config
+    // dir that holds the secret-bearing files.
+    async function chmod(mode, path) {
+        return spawn(['chmod', mode, path]);
+    }
+
     async function mkdir(path) {
         return spawn(['mkdir', '-p', path]);
     }
@@ -59,6 +74,6 @@
         }
     }
 
-    const FS = { homeDir, readText, writeText, mkdir, exists, which, spawn };
+    const FS = { homeDir, readText, writeText, writeSecret, chmod, mkdir, exists, which, spawn };
     root.FS = FS;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -52,7 +52,11 @@
             <button class="btn btn-sm btn-outline-secondary" x-show="svc.active" @click="stopService()">Stop</button>
         </div>
     </template>
-    <pre class="mf-setup-log ms-3 flex-grow-1 mb-0" x-show="svc.log" x-text="svc.log"></pre>
+    <div class="mf-setup-log-wrap ms-3 flex-grow-1 d-flex align-items-start gap-2" x-show="svc.log">
+        <pre class="mf-setup-log flex-grow-1 mb-0" x-text="svc.log"></pre>
+        <button type="button" class="btn-close flex-shrink-0 mt-1" aria-label="Dismiss log"
+                title="Dismiss log" @click="svc.log = ''"></button>
+    </div>
 </div>
 
 <!-- FILTER PILLS (horizontal row — NOT a sidebar). Shown even before aria2 is
@@ -199,6 +203,7 @@
 <script src="js/features/detail.js"></script>
 <script src="js/features/update.js"></script>
 <script src="js/features/settings-ui.js"></script>
+<script src="js/core/modalstack.js"></script>
 <script src="js/app.js"></script>
 <script src="js/boot.js"></script>
 </body>

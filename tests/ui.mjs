@@ -41,6 +41,14 @@ try {
     await app.locator('.mf-topbar').first().waitFor({ timeout: 20000 });
     check('shell renders', await app.locator('.mf-title').filter({ hasText: 'Manifest' }).count() > 0);
 
+    // ---- Setup-log dismiss (inject a log line, confirm the × clears it) ----
+    await app.evaluate(() => { const d = window.Alpine && window.Alpine.$data(document.querySelector('[x-data]')); if (d) d.svc.log = 'test setup log line'; });
+    await page.waitForTimeout(150);
+    check('setup log shows a dismiss button', await app.locator('.mf-setup-log-wrap .btn-close').count() > 0);
+    await app.locator('.mf-setup-log-wrap .btn-close').first().click({ timeout: 3000 }).catch(() => {});
+    await page.waitForTimeout(150);
+    check('dismiss clears the setup log', await app.evaluate(() => { const d = window.Alpine && window.Alpine.$data(document.querySelector('[x-data]')); return d ? !d.svc.log : false; }));
+
     // ---- Settings + theme switching ----
     await app.locator('button[title="Settings"]').first().click({ timeout: 5000 });
     await app.locator('#mfSettings.show').waitFor({ timeout: 5000 });
@@ -57,6 +65,22 @@ try {
         const expect = theme === 'system' ? /^(light|dark)$/ : new RegExp(`^${theme}$`);
         check(`theme "${theme}" applies data-bs-theme`, expect.test(attr || ''), `data-bs-theme="${attr}"`);
     }
+    // Modal stacking: a folder picker opened FROM Settings must render ON TOP,
+    // not behind it (Bootstrap gives every modal the same z-index).
+    await app.locator('#mfSettings button', { hasText: /Browse/ }).first().click({ timeout: 4000 });
+    await app.locator('#mfFolderPicker.show').waitFor({ timeout: 8000 });
+    const stack = await app.evaluate(() => {
+        const z = (el) => parseInt(getComputedStyle(el).zIndex) || 0;
+        const picker = document.querySelector('#mfFolderPicker');
+        const settings = document.querySelector('#mfSettings');
+        const r = picker.querySelector('.modal-content').getBoundingClientRect();
+        const top = document.elementFromPoint(r.left + r.width / 2, r.top + 8);
+        return { pickerZ: z(picker), settingsZ: z(settings), topInPicker: picker.contains(top) };
+    });
+    check('folder picker stacks above the modal that opened it', stack.pickerZ > stack.settingsZ && stack.topInPicker, JSON.stringify(stack));
+    await app.locator('#mfFolderPicker button', { hasText: /Cancel/ }).first().click({ timeout: 3000 }).catch(() => {});
+    await app.locator('#mfFolderPicker.show').waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
+
     await app.locator('#mfSettings [data-bs-dismiss="modal"]').first().click({ timeout: 4000 });
     await app.locator('#mfSettings.show').waitFor({ state: 'hidden', timeout: 5000 });
     check('settings modal closes', true);

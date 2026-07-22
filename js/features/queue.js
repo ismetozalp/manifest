@@ -29,6 +29,14 @@
     const Detect = root.ManifestDetect;
     const QM = root.ManifestQueueModel;
 
+    // Same gate features/quickadd.js applies before handing a metalink to
+    // aria2.addUri: aria2 fetches remote URLs itself, but a LOCAL .metalink
+    // path is not a URI — addUri([localPath]) hands aria2 a filesystem path
+    // as a "URI", which it loudly fails to fetch. Only a remote metalink URL
+    // may go through addUri; a local one needs a clear error instead (no
+    // read+base64/addMetalink path exists yet, same as Quick Add).
+    function isRemoteUrl(v) { return /^(https?|ftp|sftp):\/\//i.test(String(v || '')); }
+
     function freshQueue() {
         return {
             items: [],          // persisted staged items (queue.json)
@@ -190,7 +198,12 @@
         // select) path: hands one staged item straight to aria2.
         async _startItemDirect(item, dir) {
             const opts = { dir, pause: 'false' };
-            if (item.type === 'magnet' || item.type === 'http' || item.type === 'metalink') {
+            if (item.type === 'magnet' || item.type === 'http') {
+                await this.rpc.addUri([item.value], opts);
+            } else if (item.type === 'metalink') {
+                if (!isRemoteUrl(item.value)) {
+                    throw new Error('local .metalink files are not supported yet — use a remote metalink URL');
+                }
                 await this.rpc.addUri([item.value], opts);
             } else if (item.type === 'torrent' && item.b64) {
                 await this.rpc.addTorrent(item.b64, [], opts);

@@ -151,7 +151,11 @@
                 log('Downloading ' + this.updateState.assetUrl);
                 tmpDir = String(await FS.spawn(['mktemp', '-d'])).trim();
                 const zipPath = Util.joinPath(tmpDir, 'update.zip');
-                await FS.spawn(['curl', '-fsSL', '-o', zipPath, this.updateState.assetUrl]);
+                // `--` option-terminator: assetUrl is attacker-reachable data
+                // if the configured repo/release is ever compromised — same
+                // defense-in-depth convention as js/features/actions.js's
+                // `rm -f --` and this file's own `rm -rf --` below.
+                await FS.spawn(['curl', '-fsSL', '-o', zipPath, '--', this.updateState.assetUrl]);
 
                 log('Unzipping');
                 await FS.spawn(['unzip', '-oq', zipPath, '-d', tmpDir]);

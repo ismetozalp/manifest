@@ -149,6 +149,18 @@
                 this.quickAdd.error = 'Nothing to add — paste a magnet/URL or attach a .torrent file.';
                 return;
             }
+            // A torrent whose "Choose files…" list is open with EVERY file
+            // deselected must block the submit — falling through here would
+            // omit select-file entirely, which aria2 reads as "all files",
+            // the exact opposite of what deselecting everything means.
+            // configure.js/detail.js already refuse an empty selection the
+            // same way; stay consistent.
+            for (const tf of this.quickAdd.torrentFiles) {
+                if (tf.entries && !tf.entries.some((e) => e.selected)) {
+                    this.quickAdd.error = tf.name + ': select at least one file (or remove this torrent).';
+                    return;
+                }
+            }
             const opts = { dir: this.quickAdd.dir, pause: this.quickAdd.paused ? 'true' : 'false' };
             const errors = [];
 

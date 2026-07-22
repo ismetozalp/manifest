@@ -146,6 +146,21 @@
             }
         },
 
+        // Remove a download regardless of state. aria2.remove/forceRemove ONLY
+        // work on active/waiting/paused; a completed or errored download must be
+        // cleared with removeDownloadResult instead (calling remove on it throws
+        // "GID not found" — the bug that made completed items un-removable).
+        async _stopAndPurge(t) {
+            const st = t && t.status;
+            if (st === 'active' || st === 'waiting' || st === 'paused') {
+                try { await this.rpc.remove(t.gid); }
+                catch (e) { try { await this.rpc.forceRemove(t.gid); } catch (e2) { /* fall through to purge */ } }
+            }
+            // Purge the (now-)stopped entry. Works for complete/error/removed;
+            // harmless no-op if it's already gone.
+            await this.rpc.removeDownloadResult(t.gid).catch(() => {});
+        },
+
         async removeDl(d) {
             this.closeContextMenu();
             const targets = this._targets(d);
@@ -155,12 +170,10 @@
             if (!ok) return;
             for (const t of targets) {
                 try {
-                    try { await this.rpc.remove(t.gid); }
-                    catch (e) { await this.rpc.forceRemove(t.gid); }
-                    await this.rpc.removeDownloadResult(t.gid).catch(() => {});
+                    await this._stopAndPurge(t);
                     delete this.downloads[t.gid];
                 } catch (e) {
-                    this.toast('Remove failed: ' + e.message, 'danger');
+                    this.toast('Remove failed: ' + (e.message || e), 'danger');
                 }
             }
             this.selection = new Set();
@@ -181,9 +194,7 @@
                         paths = (files || []).map((f) => f.path).filter(Boolean);
                     } catch (e) { /* fall through with whatever we already have */ }
                     if (!paths.length) paths = (t.files || []).map((f) => f.path).filter(Boolean);
-                    try { await this.rpc.remove(t.gid); }
-                    catch (e) { await this.rpc.forceRemove(t.gid); }
-                    await this.rpc.removeDownloadResult(t.gid).catch(() => {});
+                    await this._stopAndPurge(t);
                     delete this.downloads[t.gid];
                     if (paths.length) {
                         // `--` terminates option parsing so a torrent-controlled

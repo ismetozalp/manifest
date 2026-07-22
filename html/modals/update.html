@@ -1,0 +1,64 @@
+<!-- update.html — self-update confirmation + progress modal (spec §9, plan
+     Task 6.2). Replaces the bare confirmDialog() call: the confirm phase
+     carries the optional "reset settings" toggle (the only way a user can
+     ever flip resetSettings=true into startSelfUpdate()), and the
+     running/done/error phase streams updateLog into a visible log pane —
+     mirroring the #mf-banner setup log's .mf-setup-log styling
+     (see js/features/serviceui.js / index.html). Injected into
+     #manifest-partials by boot.js BEFORE Alpine starts. data-bs-backdrop /
+     data-bs-keyboard static like configure.html — an in-flight root install
+     must not be dismissible by an outside click or Esc; the explicit Close
+     button is itself disabled while _updateInFlight (see close guard in
+     features/update.js closeUpdateModal()). -->
+
+<div id="mfUpdateModal" class="modal fade" tabindex="-1" x-data data-bs-backdrop="static" data-bs-keyboard="false"
+     x-init="updateModalEl = $el; $el.addEventListener('hidden.bs.modal', () => { updatePhase = 'confirm'; })">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Update Manifest</h5>
+                <button type="button" class="btn-close" :disabled="_updateInFlight" @click="closeUpdateModal()"></button>
+            </div>
+            <div class="modal-body">
+                <template x-if="updatePhase === 'confirm'">
+                    <div>
+                        <p>
+                            Download and install Manifest
+                            <strong x-text="updateState.latestVersion || updateState.latestTag || 'latest'"></strong>?
+                            Cockpit will restart afterwards; hard-reload the page once it comes back.
+                        </p>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="mfUpdateResetSettings" x-model="updateResetSettings">
+                            <label class="form-check-label" for="mfUpdateResetSettings">
+                                Reset Manifest settings to defaults (deletes the saved
+                                destinations, limits, and update preferences on disk)
+                            </label>
+                        </div>
+                    </div>
+                </template>
+
+                <template x-if="updatePhase !== 'confirm'">
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-2" x-show="updatePhase === 'running'">
+                            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                            <span>Updating…</span>
+                        </div>
+                        <div class="alert alert-success py-1 px-2" x-show="updatePhase === 'done'">
+                            Update installed — hard-reload this page shortly.
+                        </div>
+                        <div class="alert alert-danger py-1 px-2" x-show="updatePhase === 'error'">
+                            Self-update failed — the previous version was left in place.
+                        </div>
+                        <pre class="mf-setup-log mb-0" x-text="updateLog.join('\n')"></pre>
+                    </div>
+                </template>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" x-show="updatePhase === 'confirm'" @click="closeUpdateModal()">Cancel</button>
+                <button type="button" class="btn btn-primary" x-show="updatePhase === 'confirm'" @click="startSelfUpdate()">Install update</button>
+                <button type="button" class="btn btn-secondary" x-show="updatePhase !== 'confirm'" :disabled="_updateInFlight" @click="closeUpdateModal()">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+</content>

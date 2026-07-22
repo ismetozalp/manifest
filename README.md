@@ -149,22 +149,23 @@ the Cockpit bridge, running `curl` server-side (`FS.spawn(['curl', …])`) to
 fetch the GitHub releases API and compare the tag against the installed
 version.
 
-Clicking the badge opens a confirm dialog, then:
+Clicking the badge opens an update dialog with a "Reset Manifest settings to
+defaults" checkbox, then, once you click "Install update":
 
 1. Downloads the release zip via the bridge (`curl`) to a temp directory.
 2. Unpacks it (`unzip`) and runs `make install` in it as **superuser**
    (`FS.spawn([...], { admin: true })`) — the same one root step as a fresh
    install, this time targeting the existing `/usr/share/cockpit/manifest`.
-3. Optionally clears `~/.config/cockpit/manifest/` first, if you chose
-   "reset settings" in the confirm dialog.
+3. Optionally clears `~/.config/cockpit/manifest/` first, if you checked
+   "reset settings" in the dialog.
 4. Restarts Cockpit via a **detached** `systemd-run --no-block` unit so the
    restart survives the page's own connection dropping, and prompts you to
    hard-reload.
 
-Output streams to a log pane during the update. A failed install leaves the
-previous version running untouched — `make install` only replaces the
-target directory after the new files are staged, so there's no half-applied
-state.
+The same dialog switches to a log pane and streams each step's output as the
+update runs. A failed install leaves the previous version running untouched
+— `make install` only replaces the target directory after the new files are
+staged, so there's no half-applied state.
 
 Only the plugin-file install step needs root; the aria2 runtime itself stays
 per-user and is never touched by the update beyond what you explicitly

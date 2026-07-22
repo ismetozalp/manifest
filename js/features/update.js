@@ -5,8 +5,20 @@
 // the bridge, NEVER browser fetch to github.com, since CSP is connect-src
 // 'self'), this.settings.update.{repo,checkOnStartup}, this.pluginVersion
 // (read from VERSION by app.js), ManifestUtil.semverGt (pure semver
-// compare), this.confirmDialog()/this.toast() (app.js), this._settingsDir()
-// (core/settings.js — used only for the optional "reset settings" wipe).
+// compare), this.toast() (app.js), this._settingsDir() (core/settings.js —
+// used only for the optional "reset settings" wipe).
+//
+// The confirm-with-optional-reset-toggle + streamed progress log live in a
+// dedicated modal (#mfUpdateModal, html/modals/update.html) rather than the
+// generic confirmDialog() — confirmDialog's title+message signature has no
+// room for a checkbox, so the reset-settings toggle needs its own markup.
+// openUpdateModal() (called from the badge in index.html) shows it;
+// startSelfUpdate() below IS the modal's "Install update" button handler —
+// it reads the checkbox straight off this.updateResetSettings rather than
+// taking a parameter, and drives this.updatePhase through
+// 'running' -> 'done'/'error' so the modal body can switch from the confirm
+// prompt to the live updateLog pane (mirrors the #mf-banner setup log /
+// .mf-setup-log styling in index.html + features/serviceui.js).
 //
 // Two privilege scopes (spec §9): (1) FS.spawn(['make','-C',dir,'install'],
 // {admin:true}) installs the plugin system-wide under
@@ -27,6 +39,13 @@
         updateState: blankUpdateState(),
         updateLog: [],
         _updateInFlight: false,
+
+        // #mfUpdateModal state (html/modals/update.html). updateModalEl is
+        // captured by that partial's x-init, same pattern as
+        // confirmModalEl/fsPickerEl in app.js/core/fspicker.js.
+        updateModalEl: null,
+        updatePhase: 'confirm',   // 'confirm' | 'running' | 'done' | 'error'
+        updateResetSettings: false,
 
         // 'owner/repo' or a full github.com URL, either works.
         _releasesApiUrl() {
@@ -82,25 +101,49 @@
             }
         },
 
+        // Opens #mfUpdateModal on its confirm phase (message + the
+        // reset-settings checkbox). This is the ONLY entry point the badge
+        // (index.html) calls — it never invokes startSelfUpdate() directly,
+        // so the modal (and its checkbox) is never bypassed.
+        openUpdateModal() {
+            if (!this.updateState || !this.updateState.assetUrl) {
+                this.toast('No update package available — run a check first', 'danger');
+                return;
+            }
+            this.updateResetSettings = false;
+            this.updatePhase = 'confirm';
+            this.updateLog = [];
+            bootstrap.Modal.getOrCreateInstance(this.updateModalEl).show();
+        },
+
+        // Cancel (confirm phase) or Close (done/error phase). Guarded
+        // against dismissal while _updateInFlight — same reasoning as the
+        // static backdrop/keyboard on the modal itself: an in-flight
+        // superuser `make install` must not be walked away from mid-step.
+        closeUpdateModal() {
+            if (this._updateInFlight) return;
+            bootstrap.Modal.getOrCreateInstance(this.updateModalEl).hide();
+        },
+
+        // Install-update button handler (#mfUpdateModal confirm phase).
         // Download release zip -> unzip -> `make install` (superuser) ->
         // detached Cockpit restart. A failed install leaves the previous
         // version in place (spec §13) — nothing here touches
         // /usr/share/cockpit/manifest until the `make install` step itself.
-        async startSelfUpdate(resetSettings) {
+        // resetSettings is read from this.updateResetSettings (the modal's
+        // checkbox) rather than taken as a parameter, since this is now
+        // always invoked directly by the modal's own button, never from a
+        // generic confirmDialog.
+        async startSelfUpdate() {
             if (this._updateInFlight) return;
             if (!this.updateState || !this.updateState.assetUrl) {
                 this.toast('No update package available — run a check first', 'danger');
                 return;
             }
-            const label = this.updateState.latestVersion || this.updateState.latestTag || 'latest';
-            const ok = await this.confirmDialog(
-                'Update Manifest',
-                'Download and install Manifest ' + label + '? Cockpit will restart afterwards; hard-reload the page once it comes back.' +
-                (resetSettings ? ' Existing Manifest settings will be reset.' : '')
-            );
-            if (!ok) return;
+            const resetSettings = this.updateResetSettings;
 
             this._updateInFlight = true;
+            this.updatePhase = 'running';
             this.updateLog = [];
             const log = (line) => { this.updateLog.push(String(line)); };
             let tmpDir = '';
@@ -135,9 +178,11 @@
                 await FS.spawn(['systemd-run', '--no-block', '--', 'systemctl', 'try-restart', 'cockpit'], { admin: true });
 
                 log('Done — hard-reload this page in a few seconds.');
+                this.updatePhase = 'done';
                 this.toast('Update installed — hard-reload this page shortly', 'success');
             } catch (e) {
                 log('FAILED: ' + (e.message || String(e)));
+                this.updatePhase = 'error';
                 this.toast('Self-update failed (previous version left in place): ' + (e.message || String(e)), 'danger');
             } finally {
                 this._updateInFlight = false;

@@ -14,15 +14,16 @@
 <header class="mf-topbar d-flex align-items-center gap-2 px-3 py-2">
     <span class="mf-title fw-bold">Manifest</span>
     <!-- Version badge: grey "vX.Y.Z" normally; green "↑ Manifest vX.Y.Z" + clickable
-         (starts the self-update flow) once updateState.available flips true.
+         (opens the self-update confirm/progress modal, #mfUpdateModal in
+         html/modals/update.html) once updateState.available flips true.
          Click otherwise triggers a manual update check. updateState/
-         checkForUpdate/startSelfUpdate come from features/update.js. -->
+         checkForUpdate/openUpdateModal come from features/update.js. -->
     <button type="button" class="mf-version badge border-0"
             :class="(updateState && updateState.available) ? 'text-bg-success' : 'text-bg-secondary'"
             x-show="pluginVersion"
             :disabled="updateState && updateState.checking"
             :title="(updateState && updateState.error) ? ('Update check failed: ' + updateState.error) : ((updateState && updateState.available) ? 'Update available — click to install' : 'Click to check for updates')"
-            @click="(updateState && updateState.available) ? (startSelfUpdate && startSelfUpdate()) : (checkForUpdate && checkForUpdate(true))"
+            @click="(updateState && updateState.available) ? (openUpdateModal && openUpdateModal()) : (checkForUpdate && checkForUpdate(true))"
             x-text="(updateState && updateState.checking) ? 'Checking…' : ((updateState && updateState.available) ? ('↑ Manifest v' + updateState.latestVersion) : ('v' + pluginVersion))"></button>
     <div class="ms-auto d-flex align-items-center gap-2">
         <button class="btn btn-sm btn-primary" x-show="svc.active" @click="openQuickAdd && openQuickAdd()">+ Quick Add</button>

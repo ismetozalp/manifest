@@ -136,7 +136,7 @@
             const textItems = QM.fromPaste(this.queue.pasteText).filter(QM.validate);
             const torrentItems = (this.queue.pasteTorrents || [])
                 .filter((t) => !t.error && t.b64)
-                .map((t) => Object.assign(QM.makeItem(t.name), { b64: t.b64 }));
+                .map((t) => QM.makeItem(t.name, t.b64));
             const incoming = QM.addAll([], textItems.concat(torrentItems));
             if (!incoming.length) {
                 this.queue.pasteError = 'Nothing valid to add — paste a magnet/URL/metalink or attach a .torrent file.';

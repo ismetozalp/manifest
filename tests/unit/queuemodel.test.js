@@ -39,3 +39,16 @@ test('deserialize non-array json → []', () => {
     assert.deepEqual(Q.deserialize(''), []);
     assert.deepEqual(Q.deserialize(null), []);
 });
+test('addAll: same-value .torrent FILE items (distinct b64) both survive; identical magnets still dedupe', () => {
+    const a = Q.makeItem('download.torrent', 'AAAA');
+    const b = Q.makeItem('download.torrent', 'BBBB'); // same filename, different payload
+    const merged = Q.addAll([], [a, b]);
+    assert.equal(merged.length, 2);
+    assert.notEqual(merged[0].id, merged[1].id);
+    assert.deepEqual(merged.map((i) => i.b64).sort(), ['AAAA', 'BBBB']);
+
+    const m1 = Q.makeItem('magnet:?a');
+    const m2 = Q.makeItem('magnet:?a');
+    const mergedMagnets = Q.addAll([], [m1, m2]);
+    assert.equal(mergedMagnets.length, 1);
+});

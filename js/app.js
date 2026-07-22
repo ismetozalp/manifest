@@ -40,6 +40,7 @@ document.addEventListener('alpine:init', () => {
         svc: { setup: false, active: false, state: 'unknown', busy: false, log: '' },
         rpc: null,                    // ManifestRpc instance once port+secret known
         toasts: [],
+        deepLinks: { explorer: false, files: false },   // which folder-openers are installed
 
         // ── Table/filter state (live data + behavior come from the spread
         // ...window.ManifestDownloads module above: counts/visibleDownloads/
@@ -106,6 +107,7 @@ document.addEventListener('alpine:init', () => {
         async init() {
             try { this.pluginVersion = (await this._readVersion()) || ''; } catch (e) {}
             try { this.home = await FS.homeDir(); } catch (e) {}
+            try { await this._detectFileManagers(); } catch (e) {}
             // Staging queue is loaded independently of aria2/service state —
             // it must be usable (view + Paste to Queue) even before Setup
             // has ever run (spec §6.2 persistence works offline).

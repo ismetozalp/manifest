@@ -233,17 +233,52 @@
             }
         },
 
-        // Deep-links into the /explorer plugin's own "#open=<path>" hash
-        // route, if it's installed. Guarded — explorer may not be present.
+        // Detect which folder-opening Cockpit plugins are installed so the menu
+        // only offers the ones actually present. Called once from init().
+        async _detectFileManagers() {
+            const check = async (name) => {
+                const bases = ['/usr/share/cockpit/', (this.home || '') + '/.local/share/cockpit/'];
+                for (const base of bases) {
+                    if (!base) continue;
+                    try { await FS.spawn(['test', '-d', base + name]); return true; } catch (e) { /* not here */ }
+                }
+                return false;
+            };
+            this.deepLinks = { explorer: await check('explorer'), files: await check('files') };
+        },
+
+        // The actual content FOLDER of a download (not aria2's base `dir`):
+        // for a torrent that's `dir/<TorrentName>/`, for a single file it's the
+        // file's own folder. Derived from the common directory of its files.
+        _destFolder(d) {
+            if (!d) return '';
+            const files = d.files || [];
+            if (files.length && window.ManifestFileTree) {
+                const common = ManifestFileTree.commonDirPrefix(files.map((f) => f.path)).replace(/\/+$/, '');
+                if (common) return common;
+            }
+            return d.dir || '';
+        },
+
+        // Deep-link into the /explorer plugin's "#open=<path>" route.
         openInExplorer(d) {
             this.closeContextMenu();
             d = d || this.ctxMenu.target;
-            if (!d || !d.dir) return;
-            try {
-                window.top.location = '/explorer#open=' + encodeURIComponent(d.dir);
-            } catch (e) {
-                this.toast('Could not open Explorer — is it installed?', 'danger');
-            }
+            const path = this._destFolder(d);
+            if (!path) return;
+            try { window.top.location = '/explorer#open=' + encodeURIComponent(path); }
+            catch (e) { this.toast('Could not open Explorer — is it installed?', 'danger'); }
+        },
+
+        // Deep-link into Cockpit's built-in Files app (cockpit-files), which
+        // routes on a hash path: /files#/absolute/path .
+        openInFiles(d) {
+            this.closeContextMenu();
+            d = d || this.ctxMenu.target;
+            const path = this._destFolder(d);
+            if (!path) return;
+            try { window.top.location = '/files#' + path; }
+            catch (e) { this.toast('Could not open Files — is it installed?', 'danger'); }
         },
     };
 

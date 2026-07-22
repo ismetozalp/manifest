@@ -21,7 +21,11 @@
             'save-session-interval=30',
             'rpc-save-upload-metadata=true',
             'bt-save-metadata=true',
-            'force-save=true'
+            // force-save=false so aria2 removes the .aria2 control file when a
+            // download completes (force-save=true leaves a leftover .aria2 next
+            // to every finished file). Completed items still show in the UI while
+            // aria2 runs; they're just not re-persisted across an aria2 restart.
+            'force-save=false'
         ];
         Object.keys(limits).forEach(function (k) {
             lines.push(k + '=' + limits[k]);

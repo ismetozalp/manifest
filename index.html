@@ -159,7 +159,8 @@
     <div class="dropdown-divider"></div>
     <button class="dropdown-item" @click="copyUri(ctxMenu.target)">Copy URI</button>
     <button class="dropdown-item" @click="copyMagnet(ctxMenu.target)">Copy magnet link</button>
-    <button class="dropdown-item" @click="openInExplorer(ctxMenu.target)">Open destination in Explorer</button>
+    <button class="dropdown-item" x-show="deepLinks.files" @click="openInFiles(ctxMenu.target)">Open folder in Files</button>
+    <button class="dropdown-item" x-show="deepLinks.explorer" @click="openInExplorer(ctxMenu.target)">Open folder in Explorer</button>
     <div class="dropdown-divider"></div>
     <button class="dropdown-item text-danger" @click="removeDl(ctxMenu.target)">Remove</button>
     <button class="dropdown-item text-danger" @click="removeAndDelete(ctxMenu.target)">Remove &amp; delete files</button>
@@ -180,6 +181,7 @@
 <script src="js/util.js"></script>
 <script src="js/core/detect.js"></script>
 <script src="js/core/queuemodel.js"></script>
+<script src="js/core/filetree.js"></script>
 <script src="js/core/rpcenvelope.js"></script>
 <script src="js/core/aria2conf.js"></script>
 <script src="js/core/portpick.js"></script>

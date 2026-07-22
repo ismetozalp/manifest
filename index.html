@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="css/manifest.css">
     <script src="../base1/cockpit.js"></script>
 </head>
-<body x-data="manifest" x-init="init()" @keydown.window="onKey && onKey($event)">
+<body x-data="manifest" x-init="init()" @keydown.window="onKey && onKey($event)" @click.window="closeContextMenu && closeContextMenu()">
 
 <!-- TOP BAR -->
 <header class="mf-topbar d-flex align-items-center gap-2 px-3 py-2">
@@ -57,7 +57,9 @@
         </tr></thead>
         <tbody>
             <template x-for="d in visibleDownloads" :key="d.gid || d.key">
-                <tr class="mf-row" @contextmenu.prevent="openRowMenu && openRowMenu($event, d)">
+                <tr class="mf-row" :class="{'mf-row-selected': selection && selection.has(d.gid)}"
+                    @click="selectRow && selectRow($event, d)"
+                    @contextmenu.prevent="openRowMenu && openRowMenu($event, d)">
                     <td class="mf-row-type" x-text="rowType(d)"></td>
                     <td class="mf-row-name" :title="rowName(d)" x-text="rowName(d)"></td>
                     <td x-text="ManifestUtil.humanSize(d.totalLength)"></td>
@@ -97,6 +99,22 @@
     <span class="ms-auto" x-show="agg.freeSpace" x-text="'Free: ' + agg.freeSpace"></span>
 </footer>
 
+<!-- CONTEXT MENU (popup at cursor position — NOT a sidebar/rail) -->
+<div class="mf-ctxmenu dropdown-menu shadow-sm" :class="{show: ctxMenu.open}"
+     :style="'position:fixed; left:' + ctxMenu.x + 'px; top:' + ctxMenu.y + 'px;'"
+     x-show="ctxMenu.open" x-cloak @click.stop>
+    <button class="dropdown-item" @click="pauseDl(ctxMenu.target)">Pause</button>
+    <button class="dropdown-item" @click="resumeDl(ctxMenu.target)">Resume</button>
+    <button class="dropdown-item" @click="retryDl(ctxMenu.target)">Retry</button>
+    <div class="dropdown-divider"></div>
+    <button class="dropdown-item" @click="copyUri(ctxMenu.target)">Copy URI</button>
+    <button class="dropdown-item" @click="copyMagnet(ctxMenu.target)">Copy magnet link</button>
+    <button class="dropdown-item" @click="openInExplorer(ctxMenu.target)">Open destination in Explorer</button>
+    <div class="dropdown-divider"></div>
+    <button class="dropdown-item text-danger" @click="removeDl(ctxMenu.target)">Remove</button>
+    <button class="dropdown-item text-danger" @click="removeAndDelete(ctxMenu.target)">Remove &amp; delete files</button>
+</div>
+
 <!-- toasts -->
 <div class="mf-toasts">
     <template x-for="t in toasts" :key="t.id">
@@ -127,6 +145,7 @@
 <script src="js/features/serviceui.js"></script>
 <script src="js/features/downloads.js"></script>
 <script src="js/features/quickadd.js"></script>
+<script src="js/features/actions.js"></script>
 <script src="js/app.js"></script>
 <script src="js/boot.js"></script>
 </body>

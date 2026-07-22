@@ -10,7 +10,8 @@ document.addEventListener('alpine:init', () => {
         ...window.ManifestServiceUI,  // features/serviceui.js
         ...window.ManifestDownloads,  // features/downloads.js
         ...window.ManifestQuickAdd,   // features/quickadd.js
-        // features spread in later phases: actions, queue, detail, update
+        ...window.ManifestActions,    // features/actions.js
+        // features spread in later phases: queue, detail, update
 
         // ── State ──
         ready: false,
@@ -44,10 +45,11 @@ document.addEventListener('alpine:init', () => {
         // evaluation, an *undeclared* identifier throws even when guarded by
         // `&&`; only an already-defined-but-falsy value short-circuits safely.
         // openQuickAdd() is now the real implementation from
-        // ...window.ManifestQuickAdd spread in above.
+        // ...window.ManifestQuickAdd spread in above. openRowMenu()/
+        // closeContextMenu() are now the real implementations from
+        // ...window.ManifestActions spread in above.
         openPaste() {},
         openSettings() {},
-        openRowMenu() {}, // Phase 4.3 (actions.js) replaces this with the real context menu.
         onKey() {},
 
         // ── Generic confirm dialog (drives #mfConfirmModal) ──

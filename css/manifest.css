@@ -53,4 +53,12 @@ body { margin: 0; }
 }
 .mf-toast { min-width: 16rem; }
 
+/* ── Row selection + context-menu popup (a cursor-positioned popover, NOT a
+   side rail — see the no-sidebar rule above) ── */
+.mf-row-selected { background: var(--bs-primary-bg-subtle, #cfe2ff); }
+.mf-ctxmenu {
+    z-index: 1090;
+    min-width: 14rem;
+}
+
 [x-cloak] { display: none !important; }

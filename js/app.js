@@ -37,6 +37,16 @@ document.addEventListener('alpine:init', () => {
         agg: { down: '0 B/s', up: '0 B/s', active: 0, freeSpace: '' },
         sortBy() {}, // Phase 4 replaces this stub with a real sort implementation.
 
+        // ── Not-yet-built handlers (Phase 4/5/6 replace these stubs) ──
+        // Defined here so the `identifier && identifier()` guards in index.html
+        // never throw a ReferenceError — with Alpine's `with(scope){...}`
+        // evaluation, an *undeclared* identifier throws even when guarded by
+        // `&&`; only an already-defined-but-falsy value short-circuits safely.
+        openQuickAdd() {},
+        openPaste() {},
+        openSettings() {},
+        onKey() {},
+
         // ── Generic confirm dialog (drives #mfConfirmModal) ──
         // Visibility is driven via bootstrap.Modal (see html/modals/confirm.html),
         // not x-show. confirmModalEl is captured by that partial's x-init.

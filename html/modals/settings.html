@@ -1,0 +1,163 @@
+<!-- settings.html — the Settings modal (#mfSettings). Full-width, no
+     plugin-internal sidebar: every section (Appearance, Destinations,
+     Limits & connections, RPC, Updates) is stacked in one scrollable modal
+     body. Injected into #manifest-partials by boot.js BEFORE Alpine starts
+     (same trick as confirm.html/quickadd.html). Visibility is driven
+     through the Bootstrap Modal JS API, not x-show, mirroring the other
+     modal partials. -->
+
+<div id="mfSettings" class="modal fade" tabindex="-1" x-data data-bs-backdrop="static"
+     x-init="settingsModalEl = $el">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Settings</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+
+                <!-- 0. Appearance -->
+                <section class="mb-4">
+                    <h6 class="text-uppercase text-body-secondary small fw-bold mb-2">Appearance</h6>
+                    <label class="form-label mb-1">Theme</label>
+                    <div class="d-flex flex-wrap gap-2">
+                        <template x-for="t in (window.ManifestThemes ? window.ManifestThemes.THEMES : [])" :key="t.id">
+                            <button type="button" class="btn btn-sm d-flex align-items-center gap-2"
+                                    :class="settings.theme === t.id ? 'btn-primary' : 'btn-outline-secondary'"
+                                    @click="setTheme(t.id)">
+                                <span class="mf-theme-swatch" :class="'mf-theme-swatch-' + t.id"
+                                      style="display:inline-block;width:0.9rem;height:0.9rem;border-radius:50%;border:1px solid var(--bs-border-color);"></span>
+                                <span x-text="t.label"></span>
+                            </button>
+                        </template>
+                    </div>
+                </section>
+
+                <!-- 1. Destinations -->
+                <section class="mb-4">
+                    <h6 class="text-uppercase text-body-secondary small fw-bold mb-2">Destinations</h6>
+                    <label class="form-label mb-1">Default destination</label>
+                    <div class="d-flex gap-2 align-items-center mb-2">
+                        <input type="text" class="form-control form-control-sm" readonly
+                               :value="settings.destinations.default || '(not set)'">
+                        <button type="button" class="btn btn-sm btn-outline-secondary text-nowrap" @click="_setDefaultDestBrowse()">Browse…</button>
+                    </div>
+
+                    <label class="form-label mb-1">Bookmarks</label>
+                    <div class="mb-2">
+                        <template x-for="b in (settings.destinations.bookmarks || [])" :key="b.id">
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <span class="badge text-bg-secondary" x-show="settings.destinations.default === b.path">default</span>
+                                <span class="flex-grow-1 text-truncate" x-text="b.label + ' — ' + b.path"></span>
+                                <button type="button" class="btn btn-sm btn-link" @click="setDefaultDest(b.path)">Set default</button>
+                                <button type="button" class="btn btn-sm btn-link text-danger" @click="removeBookmark(b.id)">Remove</button>
+                            </div>
+                        </template>
+                        <div class="text-body-secondary small" x-show="!(settings.destinations.bookmarks || []).length">No bookmarks yet.</div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" @click="_addBookmarkBrowse()">Add bookmark…</button>
+
+                    <label class="form-label mb-1 mt-3">Recent destinations</label>
+                    <div class="mb-1">
+                        <template x-for="r in (settings.destinations.recents || [])" :key="r">
+                            <div class="text-body-secondary small text-truncate" x-text="r"></div>
+                        </template>
+                        <div class="text-body-secondary small" x-show="!(settings.destinations.recents || []).length">No recents yet.</div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-link text-danger px-0" x-show="(settings.destinations.recents || []).length" @click="clearRecents()">Clear recents</button>
+                </section>
+
+                <!-- 2. Limits & connections -->
+                <section class="mb-4">
+                    <h6 class="text-uppercase text-body-secondary small fw-bold mb-2">Limits &amp; connections</h6>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label class="form-label mb-1">Max concurrent downloads</label>
+                            <input type="number" min="1" class="form-control form-control-sm"
+                                   x-model.number="settings.limits.maxConcurrentDownloads" @change="applyLimits()">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label mb-1">Max connections per server</label>
+                            <input type="number" min="1" max="16" class="form-control form-control-sm"
+                                   x-model.number="settings.limits.maxConnectionsPerServer" @change="applyLimits()">
+                            <div class="form-text">aria2 caps at 16</div>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label mb-1">Splits per download</label>
+                            <input type="number" min="1" class="form-control form-control-sm"
+                                   x-model.number="settings.limits.splitPerDownload" @change="applyLimits()">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label mb-1">Min split size (MiB)</label>
+                            <input type="number" min="1" class="form-control form-control-sm"
+                                   x-model.number="settings.limits.minSplitSizeMiB" @change="applyLimits()">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label mb-1">Max peers per torrent</label>
+                            <input type="number" min="1" class="form-control form-control-sm"
+                                   x-model.number="settings.limits.maxPeersPerTorrent" @change="applyLimits()">
+                        </div>
+                        <div class="col-6"></div>
+                        <div class="col-6">
+                            <label class="form-label mb-1">Download limit (KiB/s, 0 = unlimited)</label>
+                            <input type="number" min="0" class="form-control form-control-sm"
+                                   x-model.number="settings.limits.downloadLimitKiB" @change="applyLimits()">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label mb-1">Upload limit (KiB/s, 0 = unlimited)</label>
+                            <input type="number" min="0" class="form-control form-control-sm"
+                                   x-model.number="settings.limits.uploadLimitKiB" @change="applyLimits()">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label mb-1">Seed ratio</label>
+                            <input type="number" min="0" step="0.1" class="form-control form-control-sm"
+                                   x-model.number="settings.limits.seedRatio" @change="applyLimits()">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label mb-1">Seed time (min, 0 = disabled)</label>
+                            <input type="number" min="0" class="form-control form-control-sm"
+                                   x-model.number="settings.limits.seedTimeMin" @change="applyLimits()">
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 3. RPC -->
+                <section class="mb-4">
+                    <h6 class="text-uppercase text-body-secondary small fw-bold mb-2">RPC</h6>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label class="form-label mb-1">Port</label>
+                            <input type="number" min="1" max="65535" class="form-control form-control-sm"
+                                   x-model.number="settings.rpc.port" @change="applyPort()">
+                            <div class="form-text">auto-picked at setup, re-verified on start</div>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label mb-1">Poll interval (ms)</label>
+                            <input type="number" min="250" class="form-control form-control-sm"
+                                   x-model.number="settings.pollIntervalMs" @change="saveSettings()">
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 4. Updates -->
+                <section class="mb-1">
+                    <h6 class="text-uppercase text-body-secondary small fw-bold mb-2">Updates</h6>
+                    <label class="form-label mb-1">GitHub repo (owner/name or releases URL)</label>
+                    <input type="text" class="form-control form-control-sm mb-2"
+                           x-model="settings.update.repo" @change="saveSettings()">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="mfUpdCheckStartup"
+                               x-model="settings.update.checkOnStartup" @change="saveSettings()">
+                        <label class="form-check-label" for="mfUpdCheckStartup">Check for updates on startup</label>
+                    </div>
+                </section>
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-danger me-auto" @click="resetSettingsToDefaults()">Reset to defaults</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" @click="saveSettingsNow()">Save</button>
+            </div>
+        </div>
+    </div>
+</div>

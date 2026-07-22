@@ -40,3 +40,9 @@ test('stripDataUrl', () => {
     assert.equal(U.stripDataUrl('data:application/x-bittorrent;base64,QUJD'), 'QUJD');
     assert.equal(U.stripDataUrl('QUJD'), 'QUJD'); // already bare
 });
+test('selectFileCsv', () => {
+    assert.equal(U.selectFileCsv(new Set([1, 3]), 5), '1,3');
+    assert.equal(U.selectFileCsv(new Set(), 5), '');   // caller must prevent empty-submit
+    assert.equal(U.selectFileCsv(new Set([3, 1, 2]), 5), '1,2,3'); // sorted ascending
+    assert.equal(U.selectFileCsv(new Set([1, 1, 2]), 5), '1,2');   // Set already dedupes
+});

@@ -36,7 +36,17 @@
     // "data:<mime>;base64,<payload>" — aria2.addTorrent/addMetalink want the
     // bare base64 payload. Already-bare input passes through unchanged.
     function stripDataUrl(dataUrl) { return String(dataUrl).replace(/^data:[^,]*,/, ''); }
-    const ManifestUtil = { humanSize, humanSpeed, eta, percent, shq, joinPath, dirname, basename, stripDataUrl };
+    // Builds the aria2 `select-file` option value from a set of 1-based file
+    // indices (aria2's own numbering — see getFiles()[i].index). Sorted
+    // ascending for a stable/readable CSV; empty Set → '' (caller must guard
+    // against submitting a select-file with zero files selected — aria2
+    // rejects that).
+    function selectFileCsv(selectedIndexSet, total) {
+        const indices = Array.from(selectedIndexSet || []).filter((n) => Number.isInteger(n) && n >= 1 && n <= (Number(total) || Infinity));
+        indices.sort((a, b) => a - b);
+        return indices.join(',');
+    }
+    const ManifestUtil = { humanSize, humanSpeed, eta, percent, shq, joinPath, dirname, basename, stripDataUrl, selectFileCsv };
     root.ManifestUtil = ManifestUtil;
     if (typeof module !== 'undefined' && module.exports) module.exports = ManifestUtil;
 })(typeof window !== 'undefined' ? window : globalThis);

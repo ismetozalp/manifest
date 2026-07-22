@@ -40,6 +40,14 @@ test('stripDataUrl', () => {
     assert.equal(U.stripDataUrl('data:application/x-bittorrent;base64,QUJD'), 'QUJD');
     assert.equal(U.stripDataUrl('QUJD'), 'QUJD'); // already bare
 });
+test('semverGt', () => {
+    assert.equal(U.semverGt('1.2.0', '1.1.9'), true);
+    assert.equal(U.semverGt('1.10.0', '1.2.0'), true);
+    assert.equal(U.semverGt('1.0.0', '1.0.0'), false);
+    assert.equal(U.semverGt('1.0.0', '1.0.1'), false);
+    assert.equal(U.semverGt('v1.2.0', 'v1.1.9'), true); // tolerates leading 'v'
+});
+
 test('selectFileCsv', () => {
     assert.equal(U.selectFileCsv(new Set([1, 3]), 5), '1,3');
     assert.equal(U.selectFileCsv(new Set(), 5), '');   // caller must prevent empty-submit

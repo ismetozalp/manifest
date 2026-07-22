@@ -41,12 +41,27 @@
     // ascending for a stable/readable CSV; empty Set → '' (caller must guard
     // against submitting a select-file with zero files selected — aria2
     // rejects that).
+    // Numeric-segment semver compare (self-update version check): 'v' prefix
+    // tolerated, missing segments treated as 0 (e.g. '1.2' vs '1.2.0'), each
+    // dot-segment compared numerically so '1.10.0' > '1.2.0' (plain string
+    // compare would get that backwards).
+    function semverGt(a, b) {
+        const clean = (s) => String(s || '').replace(/^v/i, '').split(/[-+]/)[0].split('.').map((n) => parseInt(n, 10) || 0);
+        const pa = clean(a), pb = clean(b);
+        const len = Math.max(pa.length, pb.length);
+        for (let i = 0; i < len; i++) {
+            const na = pa[i] || 0, nb = pb[i] || 0;
+            if (na > nb) return true;
+            if (na < nb) return false;
+        }
+        return false;
+    }
     function selectFileCsv(selectedIndexSet, total) {
         const indices = Array.from(selectedIndexSet || []).filter((n) => Number.isInteger(n) && n >= 1 && n <= (Number(total) || Infinity));
         indices.sort((a, b) => a - b);
         return indices.join(',');
     }
-    const ManifestUtil = { humanSize, humanSpeed, eta, percent, shq, joinPath, dirname, basename, stripDataUrl, selectFileCsv };
+    const ManifestUtil = { humanSize, humanSpeed, eta, percent, shq, joinPath, dirname, basename, stripDataUrl, selectFileCsv, semverGt };
     root.ManifestUtil = ManifestUtil;
     if (typeof module !== 'undefined' && module.exports) module.exports = ManifestUtil;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -61,4 +61,10 @@ body { margin: 0; }
     min-width: 14rem;
 }
 
-[x-cloak] { display: none !important; }
+/* Bootstrap's display utilities (.d-flex/.d-block/…) are `display:… !important`,
+   which overrides the inline `display:none` Alpine's x-show sets — leaving
+   x-show elements that also carry such a utility (the setup-log line, the status
+   bar) stuck visible even when the condition is false. Force x-show's hide to
+   win. Safe with our Bootstrap modals: they set inline `display:block` when
+   shown, so this only applies once an element is already display:none. */
+[x-cloak], [style*="display: none"] { display: none !important; }

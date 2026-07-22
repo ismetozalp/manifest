@@ -89,6 +89,7 @@
         detailModalEl: null,
         detail: freshDetail(),
         _detailPollTimer: null,
+        _detailPollInFlight: false,
         _detailVisHandler: null,
 
         // ── Row action: "Details" (context menu item + a caret on torrent
@@ -119,7 +120,7 @@
             this._detailVisHandler = () => {
                 if (document.hidden) {
                     if (this._detailPollTimer) { clearTimeout(this._detailPollTimer); this._detailPollTimer = null; }
-                } else if (this.detail.open && !this._detailPollTimer) {
+                } else if (this.detail.open && !this._detailPollTimer && !this._detailPollInFlight) {
                     this._detailTick();
                 }
             };
@@ -128,6 +129,7 @@
         },
 
         _detailStopPoll() {
+            this._detailPollInFlight = false;
             if (this._detailPollTimer) { clearTimeout(this._detailPollTimer); this._detailPollTimer = null; }
             if (this._detailVisHandler) {
                 document.removeEventListener('visibilitychange', this._detailVisHandler);
@@ -135,8 +137,15 @@
             }
         },
 
+        // Re-entry guard (same pattern/reasoning as features/downloads.js's
+        // table-wide poll): _detailPollTimer sits null for the whole
+        // duration of an in-flight fetch, so a hide→show visibilitychange
+        // mid-request could otherwise start a second concurrent poll chain.
         _detailTick() {
+            if (this._detailPollInFlight) return;
+            this._detailPollInFlight = true;
             this._detailFetchActiveTab().finally(() => {
+                this._detailPollInFlight = false;
                 if (!this.detail.open || document.hidden) return;
                 this._detailPollTimer = setTimeout(() => {
                     this._detailPollTimer = null;

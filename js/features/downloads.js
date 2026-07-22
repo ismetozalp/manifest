@@ -28,6 +28,7 @@
         // ── Polling lifecycle ──
         _pollActive: false,
         _pollTimer: null,
+        _pollInFlight: false,
         _pollVisHandler: null,
         _pollFailCount: 0,
         _pollFailToasted: false,
@@ -47,7 +48,7 @@
             this._pollVisHandler = () => {
                 if (document.hidden) {
                     if (this._pollTimer) { clearTimeout(this._pollTimer); this._pollTimer = null; }
-                } else if (this._pollActive && !this._pollTimer) {
+                } else if (this._pollActive && !this._pollTimer && !this._pollInFlight) {
                     this._pollTick();
                 }
             };
@@ -57,6 +58,7 @@
 
         stopPolling() {
             this._pollActive = false;
+            this._pollInFlight = false;
             if (this._pollTimer) { clearTimeout(this._pollTimer); this._pollTimer = null; }
             if (this._pollVisHandler) {
                 document.removeEventListener('visibilitychange', this._pollVisHandler);
@@ -64,8 +66,18 @@
             }
         },
 
+        // Re-entry guard: _pollTimer is null for the whole duration of an
+        // in-flight _poll() (it's only (re-)set inside the .finally() below),
+        // so a visibilitychange (hide→show) firing mid-request used to pass
+        // the `!this._pollTimer` guard above and spawn a SECOND concurrent
+        // poll chain — each with its own .finally()-scheduled setTimeout,
+        // silently doubling/tripling the effective poll rate for the rest of
+        // the session. _pollInFlight closes that window explicitly.
         _pollTick() {
+            if (this._pollInFlight) return;
+            this._pollInFlight = true;
             this._poll().finally(() => {
+                this._pollInFlight = false;
                 if (!this._pollActive || document.hidden) return;
                 const base = (this.settings && this.settings.pollIntervalMs) || BASE_BACKOFF_MS;
                 this._pollTimer = setTimeout(() => {

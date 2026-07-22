@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Manifest</title>
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/manifest.css">
+    <script src="../base1/cockpit.js"></script>
+</head>
+<body x-data="manifest" x-init="init()">
+
+<!-- ===== TOP BAR ===== -->
+<header class="mf-topbar d-flex align-items-center gap-2 px-3 py-2">
+    <span class="mf-title fw-bold">Manifest</span>
+    <span class="mf-version badge text-bg-secondary" x-show="pluginVersion" x-text="'v' + pluginVersion"></span>
+    <div class="ms-auto d-flex align-items-center gap-2">
+        <!-- filled in later phases: Quick Add, Paste, Settings -->
+    </div>
+</header>
+
+<!-- ===== SERVICE BANNER (placeholder; real one in Phase 3) ===== -->
+<div class="mf-banner px-3 py-2" x-show="!ready">
+    <span>Manifest is loading…</span>
+</div>
+
+<main class="mf-main px-3 py-2" x-show="ready">
+    <p class="text-body-secondary">Download station shell is ready. Backend wiring arrives in later phases.</p>
+</main>
+
+<!-- modal partials injected here by boot.js -->
+<div id="manifest-partials"></div>
+
+<script src="js/bootstrap.bundle.min.js"></script>
+<script src="js/app.js"></script>
+<script src="js/boot.js"></script>
+</body>
+</html>

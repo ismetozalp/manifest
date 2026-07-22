@@ -1,0 +1,7 @@
+/* manifest.css — app shell. Bootstrap handles most; this is Manifest-specific. */
+html, body { height: 100%; }
+body { margin: 0; }
+.mf-topbar { border-bottom: 1px solid var(--bs-border-color); }
+.mf-title { font-size: 1.05rem; }
+.mf-banner { background: var(--bs-tertiary-bg); border-bottom: 1px solid var(--bs-border-color); }
+[x-cloak] { display: none !important; }

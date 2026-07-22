@@ -67,27 +67,41 @@
                         </dl>
                     </div>
 
-                    <!-- Files: editable per-file selection -->
+                    <!-- Files: editable per-file selection as a checkbox tree -->
                     <div x-show="detail.tab==='files'">
-                        <div class="table-responsive">
-                            <table class="table table-sm align-middle mb-0">
-                                <thead><tr><th></th><th>Path</th><th>Size</th><th>Progress</th></tr></thead>
-                                <tbody>
-                                    <template x-for="f in detail.files" :key="f.index">
-                                        <tr>
-                                            <td><input class="form-check-input" type="checkbox" x-model="f.selected" @change="detailToggleFile(f)"></td>
-                                            <td class="text-truncate" style="max-width: 24rem;" :title="f.path" x-text="f.path"></td>
-                                            <td x-text="ManifestUtil.humanSize(f.length)"></td>
-                                            <td>
-                                                <div class="progress" style="height:0.5rem; max-width: 10rem;">
-                                                    <div class="progress-bar" role="progressbar" :style="'width:' + detailFileProgress(f) + '%'"></div>
-                                                </div>
-                                            </td>
-                                        </tr>
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" @click="detailSelectAllFiles(true)">Select all</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" @click="detailSelectAllFiles(false)">Select none</button>
+                            <span class="text-body-secondary small ms-auto" x-text="(detail.selectedIndices.size || 0) + ' of ' + (detail.files.length || 0) + ' selected'"></span>
+                        </div>
+                        <div class="mf-filetree border rounded" style="max-height: 22rem; overflow:auto;">
+                            <template x-for="row in detailTreeRows" :key="row.key">
+                                <div class="mf-tree-row d-flex align-items-center gap-2 px-2 py-1" :style="'padding-left:' + (0.5 + row.depth*1.25) + 'rem'">
+                                    <!-- folder row -->
+                                    <template x-if="row.node.dir">
+                                        <span class="d-flex align-items-center gap-2 w-100" style="min-width:0;">
+                                            <button type="button" class="btn btn-sm btn-link p-0 mf-tree-caret text-body-secondary" style="width:1rem;"
+                                                    @click="detailToggleFolder(row.key)" x-text="row.collapsed ? '▸' : '▾'"></button>
+                                            <input class="form-check-input mt-0" type="checkbox"
+                                                   :checked="detailFolderState(row.node)==='all'"
+                                                   x-effect="$el.indeterminate = (detailFolderState(row.node)==='some')"
+                                                   @change="detailToggleTreeFolder(row.node)">
+                                            <span class="text-truncate fw-medium" :title="row.node.name">📁 <span x-text="row.node.name"></span></span>
+                                        </span>
                                     </template>
-                                    <tr x-show="!detail.files.length"><td colspan="4" class="text-body-secondary text-center py-3">No file list yet.</td></tr>
-                                </tbody>
-                            </table>
+                                    <!-- file row -->
+                                    <template x-if="!row.node.dir">
+                                        <span class="d-flex align-items-center gap-2 w-100" style="min-width:0;">
+                                            <span class="mf-tree-caret" style="width:1rem;"></span>
+                                            <input class="form-check-input mt-0" type="checkbox"
+                                                   :checked="detailFileChecked(row.node)" @change="detailToggleTreeFile(row.node)">
+                                            <span class="text-truncate flex-grow-1" :title="row.node.name" x-text="row.node.name"></span>
+                                            <span class="text-body-secondary small flex-shrink-0" x-text="ManifestUtil.humanSize(row.node.length)"></span>
+                                        </span>
+                                    </template>
+                                </div>
+                            </template>
+                            <div x-show="!detailTreeRows.length" class="text-body-secondary text-center py-3">No file list yet (a magnet fetches it once metadata arrives).</div>
                         </div>
                     </div>
 

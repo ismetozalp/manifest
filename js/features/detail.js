@@ -81,6 +81,7 @@
         return {
             open: false, gid: null, tab: 'general',
             data: {}, files: [], peers: [], trackers: [],
+            fileTree: [], selectedIndices: new Set(), collapsed: new Set(), _selGid: null,
             loading: false, error: '',
         };
     }
@@ -171,6 +172,15 @@
                             completedLength: Number(f.completedLength) || 0,
                             selected: f.selected !== 'false',
                         }));
+                        this.detail.fileTree = ManifestFileTree.build(files || []).nodes;
+                        // Seed the selection set from aria2 ONCE per download; after
+                        // that the user's checkbox toggles drive it (each applied via
+                        // changeOption, so aria2's own state stays in agreement).
+                        if (this.detail._selGid !== gid) {
+                            this.detail._selGid = gid;
+                            this.detail.selectedIndices = new Set(this.detail.files.filter((f) => f.selected).map((f) => f.index));
+                            this.detail.collapsed = new Set();
+                        }
                     }
                 } else if (tab === 'peers') {
                     const totalPieces = Number(this.detail.data && this.detail.data.numPieces) || 0;
@@ -235,6 +245,66 @@
         },
 
         detailFileProgress(f) { return Util.percent(f.completedLength, f.length); },
+
+        // ── File-selection as a collapsible checkbox TREE ──
+        // detailTreeRows flattens the folder tree into indented display rows,
+        // hiding the children of collapsed folders (Alpine has no recursive
+        // template, so we flatten with a depth for padding).
+        get detailTreeRows() {
+            const rows = [];
+            const collapsed = this.detail.collapsed || new Set();
+            const walk = (nodes, depth, prefix) => {
+                for (const n of nodes) {
+                    const key = prefix + '/' + n.name;
+                    const isCollapsed = n.dir && collapsed.has(key);
+                    rows.push({ node: n, depth, key, collapsed: isCollapsed });
+                    if (n.dir && !isCollapsed) walk(n.children, depth + 1, key);
+                }
+            };
+            walk(this.detail.fileTree || [], 0, '');
+            return rows;
+        },
+        detailToggleFolder(key) {
+            const c = new Set(this.detail.collapsed || []);
+            if (c.has(key)) c.delete(key); else c.add(key);
+            this.detail.collapsed = c;                 // reassign — Alpine doesn't track Set mutations
+        },
+        detailFolderState(node) {
+            return ManifestFileTree.folderState(node, this.detail.selectedIndices || new Set());
+        },
+        detailFileChecked(node) {
+            return (this.detail.selectedIndices || new Set()).has(node.index);
+        },
+        detailToggleTreeFile(node) {
+            const sel = new Set(this.detail.selectedIndices || []);
+            if (sel.has(node.index)) sel.delete(node.index); else sel.add(node.index);
+            this._detailApplySelection(sel);
+        },
+        detailToggleTreeFolder(node) {
+            const sel = new Set(this.detail.selectedIndices || []);
+            if (ManifestFileTree.folderState(node, sel) === 'all') node.indices.forEach((i) => sel.delete(i));
+            else node.indices.forEach((i) => sel.add(i));
+            this._detailApplySelection(sel);
+        },
+        detailSelectAllFiles(on) {
+            const all = ManifestFileTree.allIndices(this.detail.fileTree || []);
+            this._detailApplySelection(new Set(on ? all : []));
+        },
+        // Apply a new selection set: optimistic UI update, then changeOption; on
+        // failure revert. aria2 refuses an empty selection, so guard it.
+        async _detailApplySelection(sel) {
+            if (!sel.size) { this.toast('At least one file must be selected.', 'danger'); return; }
+            const prev = this.detail.selectedIndices;
+            this.detail.selectedIndices = sel;
+            try {
+                const total = ManifestFileTree.allIndices(this.detail.fileTree || []).length;
+                await this.rpc.changeOption(this.detail.gid, { 'select-file': Util.selectFileCsv(sel, total) });
+                (this.detail.files || []).forEach((f) => { f.selected = sel.has(f.index); });
+            } catch (e) {
+                this.detail.selectedIndices = prev;
+                this.toast('Could not change file selection: ' + ((e && e.message) || e), 'danger');
+            }
+        },
     };
 
     root.ManifestDetail = ManifestDetail;

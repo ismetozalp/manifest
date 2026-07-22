@@ -30,6 +30,21 @@
             const x = ev ? ev.clientX : 0;
             const y = ev ? ev.clientY : 0;
             this.ctxMenu = { open: true, x, y, target: d || null };
+            // Keep the menu inside the (iframe) viewport: the ⋯ button sits at the
+            // far right, so an unclamped left:clientX opens the menu off-screen and
+            // unclickable. Measure the rendered menu and shift it left/up to fit.
+            this.$nextTick(() => {
+                const el = document.querySelector('.mf-ctxmenu');
+                if (!el) return;
+                const pad = 8;
+                const w = el.offsetWidth || 200;
+                const h = el.offsetHeight || 220;
+                let nx = x, ny = y;
+                if (x + w + pad > window.innerWidth) nx = Math.max(pad, window.innerWidth - w - pad);
+                if (y + h + pad > window.innerHeight) ny = Math.max(pad, window.innerHeight - h - pad);
+                if (nx !== x) this.ctxMenu.x = nx;
+                if (ny !== y) this.ctxMenu.y = ny;
+            });
         },
 
         closeContextMenu() {

@@ -28,7 +28,9 @@ install:
 	@if [ "$$(id -u)" != "0" ]; then echo "install requires root (use sudo)"; exit 1; fi
 	@if [ -d $(INSTALL_DIR) ]; then echo "Removing previous install"; rm -rf $(INSTALL_DIR); fi
 	install -d $(INSTALL_DIR)
-	cp -r $(FILES) $(INSTALL_DIR)/
+	@# Copy only FILES that exist — the plugin is built incrementally, so dirs
+	@# like html/ may not exist in early phases; a missing entry must not abort.
+	@for f in $(FILES); do if [ -e "$$f" ]; then cp -r "$$f" $(INSTALL_DIR)/; fi; done
 	install -d $(SYSCONF)
 	printf '%s\n' "$(VERSION)" > $(SYSCONF)/installed-version
 	@echo "Installed manifest $(VERSION) to $(INSTALL_DIR)"
@@ -42,7 +44,7 @@ uninstall:
 zip:
 	@tmp=$$(mktemp -d); \
 	mkdir "$$tmp/manifest"; \
-	cp -r $(FILES) "$$tmp/manifest/"; \
+	for f in $(FILES); do [ -e "$$f" ] && cp -r "$$f" "$$tmp/manifest/"; done; \
 	(cd "$$tmp" && zip -rq "manifest-$(VERSION).zip" manifest); \
 	mv "$$tmp/manifest-$(VERSION).zip" .; \
 	rm -rf "$$tmp"; \

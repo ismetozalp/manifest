@@ -7,6 +7,22 @@
     const Defaults = root.ManifestDefaults;
     const DestList = root.ManifestDestList;
     const Util = root.ManifestUtil;
+    const ManifestThemes = root.ManifestThemes;
+
+    // Re-apply the theme live when it's 'system' and the OS/Cockpit preference
+    // flips (e.g. desktop switches light/dark mid-session). Registered once.
+    let _themeMediaBound = false;
+    function _bindSystemThemeListener(getSettings, applyFn) {
+        if (_themeMediaBound || !root.matchMedia) return;
+        _themeMediaBound = true;
+        const mq = root.matchMedia('(prefers-color-scheme: dark)');
+        const onChange = () => {
+            const s = getSettings();
+            if (s && (s.theme || 'system') === 'system') applyFn();
+        };
+        if (mq.addEventListener) mq.addEventListener('change', onChange);
+        else if (mq.addListener) mq.addListener(onChange); // legacy
+    }
 
     function settingsDir(home) {
         return Util.joinPath(Util.joinPath(home, '.config'), 'cockpit/manifest');
@@ -33,7 +49,15 @@
             } catch (e) {
                 this.settings = Defaults.mergeSettings({});
             }
+            this.applyTheme();
+            _bindSystemThemeListener(() => this.settings, () => this.applyTheme());
             return this.settings;
+        },
+
+        applyTheme() {
+            const prefersDark = !!(root.matchMedia && root.matchMedia('(prefers-color-scheme: dark)').matches);
+            const { attr } = ManifestThemes.resolve((this.settings && this.settings.theme) || 'system', prefersDark);
+            document.documentElement.setAttribute('data-bs-theme', attr);
         },
 
         async _writeSettingsYaml() {

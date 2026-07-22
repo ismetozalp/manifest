@@ -1,0 +1,113 @@
+/* themes.css — custom Bootstrap 5.3 `data-bs-theme` palettes for Manifest.
+   `system` / `light` / `dark` use Bootstrap's built-in modes and need no
+   block here. Each custom theme below overrides the key Bootstrap CSS
+   variables plus the Manifest --mf-* accents (banner, status dot,
+   selection). All are `base:'dark'` (they extend Bootstrap's dark mode) —
+   see js/core/themes.js THEMES registry. Contrast checked for WCAG AA body
+   text against its background. */
+
+/* ── Aqua — teal/cyan on deep slate ── */
+[data-bs-theme="aqua"] {
+    --bs-body-bg: #071a1f;
+    --bs-body-color: #d8f3f0;
+    --bs-emphasis-color: #ffffff;
+    --bs-secondary-bg: #0e2a31;
+    --bs-tertiary-bg: #123640;
+    --bs-border-color: #1d4a55;
+    --bs-primary: #2dd4bf;
+    --bs-primary-rgb: 45, 212, 191;
+    --bs-success: #34d399;
+    --bs-warning: #fbbf24;
+    --bs-danger: #f87171;
+    --bs-link-color: #5eead4;
+    --bs-link-hover-color: #99f6e4;
+
+    --mf-banner-up-bg: #0f3d38;
+    --mf-banner-down-bg: #4a2e12;
+    --mf-dot-up: #2dd4bf;
+    --mf-dot-down: #94a3b8;
+    --mf-progress-fg: #2dd4bf;
+    --mf-row-selected-bg: #12414a;
+}
+
+/* ── Nord — arctic blue-grey ── */
+[data-bs-theme="nord"] {
+    --bs-body-bg: #2e3440;
+    --bs-body-color: #e5e9f0;
+    --bs-emphasis-color: #eceff4;
+    --bs-secondary-bg: #3b4252;
+    --bs-tertiary-bg: #434c5e;
+    --bs-border-color: #4c566a;
+    --bs-primary: #88c0d0;
+    --bs-primary-rgb: 136, 192, 208;
+    --bs-success: #a3be8c;
+    --bs-warning: #ebcb8b;
+    --bs-danger: #bf616a;
+    --bs-link-color: #88c0d0;
+    --bs-link-hover-color: #8fbcbb;
+
+    --mf-banner-up-bg: #3b4a3f;
+    --mf-banner-down-bg: #4f4130;
+    --mf-dot-up: #a3be8c;
+    --mf-dot-down: #4c566a;
+    --mf-progress-fg: #88c0d0;
+    --mf-row-selected-bg: #3b4252;
+}
+
+/* ── Solarized (dark) — warm amber accents ── */
+[data-bs-theme="solarized"] {
+    --bs-body-bg: #002b36;
+    --bs-body-color: #d3c9ab;
+    --bs-emphasis-color: #fdf6e3;
+    --bs-secondary-bg: #073642;
+    --bs-tertiary-bg: #0a4351;
+    --bs-border-color: #12586a;
+    --bs-primary: #b58900;
+    --bs-primary-rgb: 181, 137, 0;
+    --bs-success: #859900;
+    --bs-warning: #cb4b16;
+    --bs-danger: #dc322f;
+    --bs-link-color: #cb9500;
+    --bs-link-hover-color: #e0a800;
+
+    --mf-banner-up-bg: #35400e;
+    --mf-banner-down-bg: #4a2a14;
+    --mf-dot-up: #859900;
+    --mf-dot-down: #586e75;
+    --mf-progress-fg: #b58900;
+    --mf-row-selected-bg: #0a4351;
+}
+
+/* ── Dracula — purple/pink on near-black ── */
+[data-bs-theme="dracula"] {
+    --bs-body-bg: #282a36;
+    --bs-body-color: #f8f8f2;
+    --bs-emphasis-color: #ffffff;
+    --bs-secondary-bg: #343746;
+    --bs-tertiary-bg: #3b3e4f;
+    --bs-border-color: #44475a;
+    --bs-primary: #bd93f9;
+    --bs-primary-rgb: 189, 147, 249;
+    --bs-success: #50fa7b;
+    --bs-warning: #f1fa8c;
+    --bs-danger: #ff5555;
+    --bs-link-color: #ff79c6;
+    --bs-link-hover-color: #ffb3de;
+
+    --mf-banner-up-bg: #1f4a2e;
+    --mf-banner-down-bg: #4a3a1a;
+    --mf-dot-up: #50fa7b;
+    --mf-dot-down: #6272a4;
+    --mf-progress-fg: #bd93f9;
+    --mf-row-selected-bg: #3b3e4f;
+}
+
+/* Wire the manifest.css component classes to the --mf-* accent variables
+   (System/Light/Dark leave these unset and fall back to manifest.css's
+   Bootstrap-var defaults). */
+.mf-banner-up { background: var(--mf-banner-up-bg, var(--bs-success-bg-subtle, #d1e7dd)); }
+.mf-banner-down { background: var(--mf-banner-down-bg, var(--bs-warning-bg-subtle, #fff3cd)); }
+.mf-dot.up { background: var(--mf-dot-up, var(--bs-success, #198754)); }
+.mf-dot.down { background: var(--mf-dot-down, var(--bs-secondary, #6c757d)); }
+.mf-row-selected { background: var(--mf-row-selected-bg, var(--bs-primary-bg-subtle, #cfe2ff)); }
+.progress-bar, .mf-progress-fg { background-color: var(--mf-progress-fg, var(--bs-primary)); }

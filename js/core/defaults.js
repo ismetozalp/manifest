@@ -1,6 +1,7 @@
 'use strict';
 (function (root) {
     const DEFAULT_SETTINGS = {
+        theme: 'system',                           // ManifestThemes id
         rpc: { port: null, secret: null },        // filled at setup
         pollIntervalMs: 1500,
         destinations: { default: null, bookmarks: [], recents: [] },
@@ -25,6 +26,7 @@
     function mergeSettings(loaded) {
         loaded = loaded || {};
         return {
+            theme: loaded.theme != null ? loaded.theme : DEFAULT_SETTINGS.theme,
             rpc: mergeOne(DEFAULT_SETTINGS.rpc, loaded.rpc),
             pollIntervalMs: loaded.pollIntervalMs != null ? loaded.pollIntervalMs : DEFAULT_SETTINGS.pollIntervalMs,
             destinations: mergeOne(DEFAULT_SETTINGS.destinations, loaded.destinations),

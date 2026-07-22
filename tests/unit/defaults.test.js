@@ -17,6 +17,10 @@ test('mergeSettings does not mutate DEFAULT_SETTINGS', () => {
     D.mergeSettings({ limits: { maxConcurrentDownloads: 2 } });
     assert.equal(D.DEFAULT_SETTINGS.limits.maxConcurrentDownloads, 5);
 });
+test('theme defaults to system and merges', () => {
+    assert.equal(D.DEFAULT_SETTINGS.theme, 'system');
+    assert.equal(D.mergeSettings({ theme: 'aqua' }).theme, 'aqua');
+});
 test('toAria2GlobalOptions maps + clamps + formats speeds', () => {
     const o = D.toAria2GlobalOptions(D.mergeSettings({
         limits: { maxConnectionsPerServer: 99, downloadLimitKiB: 500, minSplitSizeMiB: 20 }

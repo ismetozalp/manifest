@@ -27,8 +27,19 @@ try {
         if (!app) done(3, `Could not locate the Manifest plugin frame. Shot: ${SHOT}`);
         await app.locator('.mf-topbar').first().waitFor({ timeout: 20000 });
         await app.locator('.mf-title').filter({ hasText: 'Manifest' }).first().waitFor({ timeout: 5000 });
+
+        const banner = app.locator('.mf-banner').first();
+        await banner.waitFor({ timeout: 10000 });
+        const bannerText = (await banner.innerText()).trim();
+        const bannerOK = /Set up aria2|aria2 running|aria2 stopped/i.test(bannerText);
+        if (!bannerOK) errors.push({ kind: 'interaction', text: `banner text unexpected: "${bannerText}"` });
+
+        const globalsOK = await app.evaluate(() =>
+            typeof window.ManifestRpc !== 'undefined' && typeof window.ManifestService !== 'undefined');
+        if (!globalsOK) errors.push({ kind: 'interaction', text: 'core module globals missing (script include order?)' });
+
         await page.screenshot({ path: SHOT }).catch(() => {});
-        const risky = errors.filter(e => e.kind === 'pageerror' || RISK.test(e.text));
+        const risky = errors.filter(e => e.kind === 'pageerror' || e.kind === 'interaction' || RISK.test(e.text));
         if (risky.length) done(1, `FAIL — ${risky.length} JS issue(s). Shot: ${SHOT}`);
         else done(0, `OK — shell rendered, no risky JS errors. Shot: ${SHOT}`);
     }

@@ -111,3 +111,14 @@
 .mf-dot.down { background: var(--mf-dot-down, var(--bs-secondary, #6c757d)); }
 .mf-row-selected { background: var(--mf-row-selected-bg, var(--bs-primary-bg-subtle, #cfe2ff)); }
 .progress-bar, .mf-progress-fg { background-color: var(--mf-progress-fg, var(--bs-primary)); }
+
+/* Theme picker swatches (Settings → Appearance): a two-tone preview of each
+   theme — base background on one half, accent/primary on the other. The span's
+   size/border/radius come from its inline style; only the fill lives here. */
+.mf-theme-swatch-system    { background: linear-gradient(135deg, #f8f9fa 50%, #212529 50%); }
+.mf-theme-swatch-light     { background: linear-gradient(135deg, #f8f9fa 50%, #0d6efd 50%); }
+.mf-theme-swatch-dark      { background: linear-gradient(135deg, #212529 50%, #6ea8fe 50%); }
+.mf-theme-swatch-aqua      { background: linear-gradient(135deg, #071a1f 50%, #2dd4bf 50%); }
+.mf-theme-swatch-nord      { background: linear-gradient(135deg, #2e3440 50%, #88c0d0 50%); }
+.mf-theme-swatch-solarized { background: linear-gradient(135deg, #002b36 50%, #b58900 50%); }
+.mf-theme-swatch-dracula   { background: linear-gradient(135deg, #282a36 50%, #bd93f9 50%); }

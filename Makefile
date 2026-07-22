@@ -7,7 +7,7 @@ TAG := v$(VERSION)
 RELEASE_NOTES ?= Release $(VERSION)
 export RELEASE_NOTES
 
-FILES = manifest.json index.html README.md VERSION Makefile css js html
+FILES = manifest.json index.html README.md CHANGELOG.md VERSION Makefile css js html
 
 .PHONY: all install uninstall zip publish clean help version
 

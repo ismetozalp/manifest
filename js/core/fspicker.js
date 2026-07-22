@@ -93,10 +93,18 @@
 
         async _fpChoose() {
             const cwd = this.fsPicker.cwd;
+            // Real write probe. `test -w` uses access(2), which gives false
+            // negatives on network mounts (NFS/CIFS frequently can't answer it
+            // client-side even when the server permits the write, and root_squash
+            // / mount uid mapping further confuse it). Actually creating and
+            // removing a temp file is the ground truth for "can I write here".
+            const probe = Util.joinPath(cwd, '.manifest-write-test-' + Date.now());
+            const q = Util.shq(probe);
             try {
-                await FS.spawn(['test', '-w', cwd]);
+                await FS.spawn(['sh', '-c', 'touch ' + q + ' && rm -f ' + q]);
             } catch (e) {
-                this.fsPicker.error = 'Destination not writable.';
+                this.fsPicker.error = 'Destination not writable — could not create a file here ('
+                    + (e.message ? String(e.message).trim() : 'permission denied') + ').';
                 return;
             }
             this._fpFinish(cwd);

@@ -10,6 +10,10 @@
     const Util = root.ManifestUtil;
 
     const ManifestFsPicker = {
+        // Captured by html/modals/confirm.html's x-init on #mfFolderPicker.
+        // Visibility is driven via bootstrap.Modal, not x-show.
+        fsPickerEl: null,
+
         fsPicker: {
             open: false,
             cwd: '/',
@@ -27,6 +31,7 @@
                 this.fsPicker.newFolderName = '';
                 this.fsPicker.error = '';
                 this.fsPicker.resolve = resolve;
+                bootstrap.Modal.getOrCreateInstance(this.fsPickerEl).show();
                 this._fpList(startPath || '/');
             });
         },
@@ -105,6 +110,7 @@
             const resolve = this.fsPicker.resolve;
             this.fsPicker.open = false;
             this.fsPicker.resolve = null;
+            bootstrap.Modal.getOrCreateInstance(this.fsPickerEl).hide();
             if (resolve) resolve(result);
         },
     };

@@ -10,24 +10,30 @@ document.addEventListener('alpine:init', () => {
         home: '',
 
         // ── Generic confirm dialog (drives #mfConfirmModal) ──
-        confirm: { open: false, title: '', message: '', resolve: null },
+        // Visibility is driven via bootstrap.Modal (see html/modals/confirm.html),
+        // not x-show. confirmModalEl is captured by that partial's x-init.
+        confirmModalEl: null,
+        confirm: { open: false, title: '', message: '', result: undefined, resolve: null },
 
         confirmDialog(title, message) {
             return new Promise((resolve) => {
-                this.confirm = { open: true, title: title || 'Confirm', message: message || '', resolve };
+                this.confirm = { open: true, title: title || 'Confirm', message: message || '', result: undefined, resolve };
+                bootstrap.Modal.getOrCreateInstance(this.confirmModalEl).show();
             });
         },
 
+        // Resolution happens in the 'hidden.bs.modal' listener (see
+        // html/modals/confirm.html) once the modal has actually finished
+        // closing — resolving here instead would race the next dialog if a
+        // caller immediately opens another one reusing this same modal.
         _confirmOk() {
-            const resolve = this.confirm.resolve;
-            this.confirm.open = false;
-            if (resolve) resolve(true);
+            this.confirm.result = true;
+            bootstrap.Modal.getOrCreateInstance(this.confirmModalEl).hide();
         },
 
         _confirmCancel() {
-            const resolve = this.confirm.resolve;
-            this.confirm.open = false;
-            if (resolve) resolve(false);
+            this.confirm.result = false;
+            bootstrap.Modal.getOrCreateInstance(this.confirmModalEl).hide();
         },
 
         // ── Modules spread in ──

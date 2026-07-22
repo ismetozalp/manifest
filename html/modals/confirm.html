@@ -1,10 +1,23 @@
 <!-- confirm.html — generic confirm dialog + server-side folder-picker modal.
      Injected into #manifest-partials by boot.js BEFORE Alpine starts, so
-     these are live x-data bindings on the `manifest` component. -->
+     these are live x-data bindings on the `manifest` component.
+
+     Visibility is driven through the Bootstrap Modal JS API
+     (bootstrap.Modal.getOrCreateInstance(el).show()/.hide()), NOT x-show —
+     mirroring the reference /explorer plugin (js/core/dialogs.js). The
+     vendored css/bootstrap.min.css sets `.modal{display:none}` unconditionally;
+     only bootstrap.Modal's own inline style ever overrides it, and Alpine's
+     x-show 'show' path merely removes an inline style rather than forcing
+     display:block, so x-show alone can never make a `.modal` visible here. -->
 
 <!-- ===== Generic confirm dialog ===== -->
-<div id="mfConfirmModal" class="modal" tabindex="-1" x-show="confirm.open" x-cloak
-     @keydown.escape.window="confirm.open && _confirmCancel()">
+<div id="mfConfirmModal" class="modal fade" tabindex="-1" x-data
+     x-init="confirmModalEl = $el; $el.addEventListener('hidden.bs.modal', () => {
+         confirm.open = false;
+         const r = confirm.resolve;
+         confirm.resolve = null;
+         if (r) r(confirm.result !== undefined ? confirm.result : false);
+     })">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
@@ -21,10 +34,15 @@
         </div>
     </div>
 </div>
-<div class="modal-backdrop" x-show="confirm.open" x-cloak></div>
 
 <!-- ===== Server-side folder picker (no sidebar: breadcrumb + single list) ===== -->
-<div id="mfFolderPicker" class="modal" tabindex="-1" data-bs-keyboard="false" x-show="fsPicker.open" x-cloak>
+<div id="mfFolderPicker" class="modal fade" tabindex="-1" x-data data-bs-backdrop="static" data-bs-keyboard="false"
+     x-init="fsPickerEl = $el; $el.addEventListener('hidden.bs.modal', () => {
+         fsPicker.open = false;
+         const r = fsPicker.resolve;
+         fsPicker.resolve = null;
+         if (r) r(null);
+     })">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
             <div class="modal-header">
@@ -77,4 +95,3 @@
         </div>
     </div>
 </div>
-<div class="modal-backdrop" x-show="fsPicker.open" x-cloak></div>

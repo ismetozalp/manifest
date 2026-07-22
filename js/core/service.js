@@ -92,9 +92,17 @@
         }
         log('No supported package manager install succeeded; trying the static build fallback.');
         const plan = InstallCmd.staticFallbackPlan(home);
-        for (const step of plan.steps) {
-            log('$ ' + step.join(' '));
-            await FS.spawn(step); // unprivileged: writes only under $HOME/.local/bin
+        try {
+            for (const step of plan.steps) {
+                log('$ ' + step.join(' '));
+                await FS.spawn(step); // unprivileged: writes only under $HOME/.local/bin
+            }
+        } catch (e) {
+            // Most likely cause: no internet access to fetch the static build
+            // (curl/tar failure) now that every package manager has also
+            // failed. Fall through to the actionable manual-install error
+            // below instead of letting the raw spawn error escape (spec §13).
+            log('  (static fallback failed: ' + (e.message || e) + ')');
         }
         const d = await detect(home);
         if (d.installed) {

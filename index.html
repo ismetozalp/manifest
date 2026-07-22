@@ -9,23 +9,68 @@
 </head>
 <body x-data="manifest" x-init="init()" @keydown.window="onKey && onKey($event)">
 
-<!-- ===== TOP BAR ===== -->
+<!-- TOP BAR -->
 <header class="mf-topbar d-flex align-items-center gap-2 px-3 py-2">
     <span class="mf-title fw-bold">Manifest</span>
-    <span class="mf-version badge text-bg-secondary" x-show="pluginVersion" x-text="'v' + pluginVersion"></span>
+    <span class="mf-version badge text-bg-secondary" x-show="pluginVersion" x-text="'v'+pluginVersion"></span>
     <div class="ms-auto d-flex align-items-center gap-2">
-        <!-- filled in later phases: Quick Add, Paste, Settings -->
+        <button class="btn btn-sm btn-primary" x-show="svc.active" @click="openQuickAdd && openQuickAdd()">+ Quick Add</button>
+        <button class="btn btn-sm btn-outline-secondary" x-show="svc.active" @click="openPaste && openPaste()">Paste to Queue</button>
+        <button class="btn btn-sm btn-link" @click="openSettings && openSettings()" title="Settings">⚙</button>
     </div>
 </header>
 
-<!-- ===== SERVICE BANNER (placeholder; real one in Phase 3) ===== -->
-<div class="mf-banner px-3 py-2" x-show="!ready">
-    <span>Manifest is loading…</span>
+<!-- SERVICE BANNER -->
+<div class="mf-banner d-flex align-items-center gap-2 px-3 py-2" :class="svc.active ? 'mf-banner-up' : 'mf-banner-down'">
+    <span class="mf-dot" :class="svc.active ? 'up' : 'down'"></span>
+    <template x-if="!svc.setup">
+        <div class="d-flex align-items-center gap-2">
+            <span>aria2 is not set up yet.</span>
+            <button class="btn btn-sm btn-success" :disabled="svc.busy" @click="runSetup()"
+                    x-text="svc.busy ? 'Setting up…' : 'Set up aria2 (turnkey)'"></button>
+        </div>
+    </template>
+    <template x-if="svc.setup">
+        <div class="d-flex align-items-center gap-2">
+            <span x-text="svc.active ? 'aria2 running' : 'aria2 stopped'"></span>
+            <button class="btn btn-sm btn-outline-success" x-show="!svc.active" @click="startService()">Start</button>
+            <button class="btn btn-sm btn-outline-secondary" x-show="svc.active" @click="stopService()">Stop</button>
+        </div>
+    </template>
+    <pre class="mf-setup-log ms-3 flex-grow-1 mb-0" x-show="svc.log" x-text="svc.log"></pre>
 </div>
 
-<main class="mf-main px-3 py-2" x-show="ready">
-    <p class="text-body-secondary">Download station shell is ready. Backend wiring arrives in later phases.</p>
+<!-- FILTER PILLS (horizontal row — NOT a sidebar) -->
+<nav class="mf-pills d-flex flex-wrap gap-2 px-3 py-2" x-show="svc.active">
+    <template x-for="p in filterPills" :key="p.key">
+        <button class="btn btn-sm" :class="activeFilter===p.key ? 'btn-primary' : 'btn-outline-secondary'"
+                @click="activeFilter=p.key" x-text="p.label + ' (' + (counts[p.key]||0) + ')'"></button>
+    </template>
+</nav>
+
+<!-- UNIFIED TABLE (one row per download) -->
+<main class="mf-main px-3" x-show="svc.active">
+    <table class="table table-sm mf-table align-middle">
+        <thead><tr>
+            <th></th><th @click="sortBy('name')">Name</th><th @click="sortBy('size')">Size</th>
+            <th>Progress</th><th>↓</th><th>↑</th><th>ETA</th><th>Status</th><th></th>
+        </tr></thead>
+        <tbody>
+            <template x-for="d in visibleDownloads" :key="d.gid || d.key">
+                <tr class="mf-row"><!-- filled in Phase 4 --></tr>
+            </template>
+            <tr x-show="!visibleDownloads.length"><td colspan="9" class="text-body-secondary py-4 text-center">No downloads. Use Quick Add or Paste to Queue.</td></tr>
+        </tbody>
+    </table>
 </main>
+
+<!-- AGGREGATE STATUS BAR (bottom) -->
+<footer class="mf-statusbar d-flex align-items-center gap-3 px-3 py-2" x-show="svc.active">
+    <span>↓ <span x-text="agg.down"></span></span>
+    <span>↑ <span x-text="agg.up"></span></span>
+    <span x-text="agg.active + ' active'"></span>
+    <span class="ms-auto" x-show="agg.freeSpace" x-text="'Free: ' + agg.freeSpace"></span>
+</footer>
 
 <!-- toasts -->
 <div class="mf-toasts">
@@ -36,10 +81,9 @@
     </template>
 </div>
 
-<!-- modal partials injected here by boot.js -->
 <div id="manifest-partials"></div>
-
 <script src="js/bootstrap.bundle.min.js"></script>
+<!-- module scripts, dependency order: pure → fs → core → features → app → boot -->
 <script src="js/util.js"></script>
 <script src="js/core/detect.js"></script>
 <script src="js/core/rpcenvelope.js"></script>
@@ -55,6 +99,7 @@
 <script src="js/core/destlist.js"></script>
 <script src="js/core/settings.js"></script>
 <script src="js/core/fspicker.js"></script>
+<script src="js/features/serviceui.js"></script>
 <script src="js/app.js"></script>
 <script src="js/boot.js"></script>
 </body>

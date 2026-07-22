@@ -9,7 +9,8 @@ document.addEventListener('alpine:init', () => {
         ...window.ManifestFsPicker,   // core/fspicker.js
         ...window.ManifestServiceUI,  // features/serviceui.js
         ...window.ManifestDownloads,  // features/downloads.js
-        // features spread in later phases: quickadd, actions, queue, detail, update
+        ...window.ManifestQuickAdd,   // features/quickadd.js
+        // features spread in later phases: actions, queue, detail, update
 
         // ── State ──
         ready: false,
@@ -37,12 +38,13 @@ document.addEventListener('alpine:init', () => {
         sortKey: 'name',
         sortDir: 'asc',
 
-        // ── Not-yet-built handlers (Phase 4.2/4.3/5/6 replace these stubs) ──
+        // ── Not-yet-built handlers (Phase 4.3/5/6 replace these stubs) ──
         // Defined here so the `identifier && identifier()` guards in index.html
         // never throw a ReferenceError — with Alpine's `with(scope){...}`
         // evaluation, an *undeclared* identifier throws even when guarded by
         // `&&`; only an already-defined-but-falsy value short-circuits safely.
-        openQuickAdd() {},
+        // openQuickAdd() is now the real implementation from
+        // ...window.ManifestQuickAdd spread in above.
         openPaste() {},
         openSettings() {},
         openRowMenu() {}, // Phase 4.3 (actions.js) replaces this with the real context menu.

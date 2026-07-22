@@ -1,0 +1,98 @@
+<!-- quickadd.html — Quick Add modal (magnet / http / ftp / metalink text lines,
+     .torrent via drag-drop or Browse, destination chip row, add-paused,
+     optional per-torrent file selection). Injected into #manifest-partials
+     by boot.js BEFORE Alpine starts (same trick as confirm.html).
+
+     Visibility is driven through the Bootstrap Modal JS API, NOT x-show —
+     mirroring html/modals/confirm.html. Everything is stacked in a single
+     modal body — no sidebar. -->
+
+<div id="mfQuickAdd" class="modal fade" tabindex="-1" x-data data-bs-backdrop="static"
+     x-init="quickAddModalEl = $el; $el.addEventListener('hidden.bs.modal', () => { quickAdd.open = false; })">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Quick Add</h5>
+                <button type="button" class="btn-close" @click="_qaCancel()"></button>
+            </div>
+            <div class="modal-body">
+                <label class="form-label mb-1" for="qaText">Magnet links / URLs (one per line)</label>
+                <textarea id="qaText" class="form-control mf-qa-text" rows="4"
+                          placeholder="magnet:?xt=...&#10;https://example.com/file.iso&#10;https://example.com/job.metalink"
+                          x-model="quickAdd.text"></textarea>
+
+                <!-- .torrent drop zone + Browse -->
+                <div class="mf-dropzone border rounded p-3 text-center mt-2"
+                     :class="quickAdd.dragOver ? 'border-primary bg-body-tertiary' : 'border-secondary-subtle'"
+                     @dragover.prevent="quickAdd.dragOver = true"
+                     @dragleave.prevent="quickAdd.dragOver = false"
+                     @drop.prevent="_qaDrop($event)">
+                    <p class="mb-2 text-body-secondary">Drag &amp; drop <code>.torrent</code> files here, or</p>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" @click="$refs.qaFileInput.click()">Browse…</button>
+                    <input type="file" x-ref="qaFileInput" accept=".torrent" multiple class="d-none" @change="_qaFiles($event)">
+                </div>
+
+                <!-- attached .torrent files + optional per-file selection -->
+                <div class="mf-qa-torrents mt-2" x-show="quickAdd.torrentFiles.length">
+                    <template x-for="(tf, idx) in quickAdd.torrentFiles" :key="idx">
+                        <div class="border rounded p-2 mb-2">
+                            <div class="d-flex align-items-center gap-2">
+                                <span>⛴</span>
+                                <span class="fw-semibold" x-text="tf.name"></span>
+                                <span class="text-body-secondary small" x-text="ManifestUtil.humanSize(tf.size)"></span>
+                                <button type="button" class="btn btn-sm btn-link" @click="_qaToggleChooseFiles(idx)"
+                                        x-text="tf.expanded ? 'Hide files' : 'Choose files…'"></button>
+                                <button type="button" class="btn btn-sm btn-link text-danger ms-auto" @click="_qaRemoveTorrentFile(idx)">Remove</button>
+                            </div>
+                            <div class="text-danger small" x-show="tf.error" x-text="tf.error"></div>
+                            <div x-show="tf.expanded" class="mt-2">
+                                <div class="text-body-secondary small" x-show="tf.loading">Reading torrent contents…</div>
+                                <div class="mf-qa-entries" style="max-height:180px; overflow-y:auto;" x-show="tf.entries && tf.entries.length">
+                                    <template x-for="(e, ei) in (tf.entries || [])" :key="e.index">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" :id="'qaEntry'+idx+'_'+ei" x-model="e.selected">
+                                            <label class="form-check-label small" :for="'qaEntry'+idx+'_'+ei">
+                                                <span x-text="e.path"></span>
+                                                <span class="text-body-secondary" x-text="'(' + ManifestUtil.humanSize(e.length) + ')'"></span>
+                                            </label>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- destination chip row (bookmarks + recents + Browse — no sidebar) -->
+                <div class="mt-3">
+                    <label class="form-label mb-1">Destination</label>
+                    <div class="d-flex flex-wrap gap-2 align-items-center">
+                        <template x-for="b in (settings.destinations.bookmarks || [])" :key="b.id">
+                            <button type="button" class="btn btn-sm"
+                                    :class="quickAdd.dir===b.path ? 'btn-primary' : 'btn-outline-secondary'"
+                                    @click="_qaSetDest(b.path)" x-text="b.label"></button>
+                        </template>
+                        <template x-for="r in (settings.destinations.recents || []).slice(0,5)" :key="r">
+                            <button type="button" class="btn btn-sm"
+                                    :class="quickAdd.dir===r ? 'btn-primary' : 'btn-outline-secondary'"
+                                    @click="_qaSetDest(r)" x-text="r"></button>
+                        </template>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" @click="_qaBrowseDest()">Browse…</button>
+                    </div>
+                    <div class="text-body-secondary small mt-1" x-text="quickAdd.dir"></div>
+                </div>
+
+                <div class="form-check mt-2">
+                    <input class="form-check-input" type="checkbox" id="qaPaused" x-model="quickAdd.paused">
+                    <label class="form-check-label" for="qaPaused">Add paused</label>
+                </div>
+
+                <div class="alert alert-danger py-1 px-2 mt-2" style="white-space:pre-wrap;" x-show="quickAdd.error" x-text="quickAdd.error"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" @click="_qaCancel()">Cancel</button>
+                <button type="button" class="btn btn-primary" @click="confirmQuickAdd()">Add</button>
+            </div>
+        </div>
+    </div>
+</div>

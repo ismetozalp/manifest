@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="css/manifest.css">
     <script src="../base1/cockpit.js"></script>
 </head>
-<body x-data="manifest" x-init="init()">
+<body x-data="manifest" x-init="init()" @keydown.window="onKey && onKey($event)">
 
 <!-- ===== TOP BAR ===== -->
 <header class="mf-topbar d-flex align-items-center gap-2 px-3 py-2">
@@ -26,6 +26,15 @@
 <main class="mf-main px-3 py-2" x-show="ready">
     <p class="text-body-secondary">Download station shell is ready. Backend wiring arrives in later phases.</p>
 </main>
+
+<!-- toasts -->
+<div class="mf-toasts">
+    <template x-for="t in toasts" :key="t.id">
+        <div class="toast show mf-toast" :class="'text-bg-'+(t.kind==='danger'?'danger':t.kind==='success'?'success':'secondary')">
+            <div class="toast-body" x-text="t.msg"></div>
+        </div>
+    </template>
+</div>
 
 <!-- modal partials injected here by boot.js -->
 <div id="manifest-partials"></div>

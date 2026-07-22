@@ -4,10 +4,38 @@
 
 document.addEventListener('alpine:init', () => {
     Alpine.data('manifest', () => ({
+        // ── Modules spread in ──
+        ...window.ManifestSettings,   // core/settings.js
+        ...window.ManifestFsPicker,   // core/fspicker.js
+        ...window.ManifestServiceUI,  // features/serviceui.js
+        // features spread in later phases: downloads, quickadd, actions, queue, detail, update
+
         // ── State ──
         ready: false,
         pluginVersion: '',
         home: '',
+        settings: window.ManifestDefaults.mergeSettings({}),
+        svc: { setup: false, active: false, state: 'unknown', busy: false, log: '' },
+        rpc: null,                    // ManifestRpc instance once port+secret known
+        toasts: [],
+
+        // ── Placeholder table/filter state (Phase 4 wires this to live data;
+        // kept here now purely so the shell markup below renders clean with
+        // no undefined-reference errors) ──
+        activeFilter: 'all',
+        filterPills: [
+            { key: 'all', label: 'All' },
+            { key: 'active', label: 'Active' },
+            { key: 'waiting', label: 'Waiting' },
+            { key: 'paused', label: 'Paused' },
+            { key: 'complete', label: 'Complete' },
+            { key: 'error', label: 'Error' },
+            { key: 'queue', label: 'Queue' },
+        ],
+        counts: {},
+        visibleDownloads: [],
+        agg: { down: '0 B/s', up: '0 B/s', active: 0, freeSpace: '' },
+        sortBy() {}, // Phase 4 replaces this stub with a real sort implementation.
 
         // ── Generic confirm dialog (drives #mfConfirmModal) ──
         // Visibility is driven via bootstrap.Modal (see html/modals/confirm.html),
@@ -36,15 +64,13 @@ document.addEventListener('alpine:init', () => {
             bootstrap.Modal.getOrCreateInstance(this.confirmModalEl).hide();
         },
 
-        // ── Modules spread in ──
-        ...window.ManifestSettings,
-        ...window.ManifestFsPicker,
-
         // ── Lifecycle ──
         async init() {
             try { this.pluginVersion = (await this._readVersion()) || ''; } catch (e) {}
             try { this.home = await FS.homeDir(); } catch (e) {}
             try { await this._loadSettings(); } catch (e) {}
+            try { await this._refreshServiceState(); } catch (e) { console.error('[manifest] initial service state check failed:', e); }
+            this._startServicePoll();
             this.ready = true;
         },
 
@@ -54,6 +80,12 @@ document.addEventListener('alpine:init', () => {
                 const r = await fetch('VERSION', { cache: 'no-cache' });
                 return r.ok ? (await r.text()).trim() : '';
             } catch (e) { return ''; }
+        },
+
+        toast(msg, kind = 'info') {
+            const id = Date.now() + Math.random();
+            this.toasts.push({ id, msg, kind });
+            setTimeout(() => { this.toasts = this.toasts.filter((t) => t.id !== id); }, 6000);
         },
     }));
 });

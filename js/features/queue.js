@@ -97,6 +97,18 @@
             bootstrap.Modal.getOrCreateInstance(this.pasteModalEl).show();
         },
 
+        // Touch-friendly clipboard paste into the queue links box.
+        async queuePasteClipboard() {
+            try {
+                const t = await navigator.clipboard.readText();
+                if (!t || !t.trim()) return;
+                const cur = (this.queue.pasteText || '').replace(/\s+$/, '');
+                this.queue.pasteText = cur ? cur + '\n' + t.trim() : t.trim();
+            } catch (e) {
+                this.toast('Clipboard blocked — long-press the box and choose Paste.', 'danger');
+            }
+        },
+
         // Live preview of every line + attached .torrent file, each
         // classified independently — this is what makes the mixed-source
         // paste (magnet + http + metalink + torrent, all at once) visible to

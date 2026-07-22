@@ -17,8 +17,19 @@
     const POLL_KEYS = [
         'gid', 'status', 'totalLength', 'completedLength', 'downloadSpeed',
         'uploadSpeed', 'files', 'dir', 'bittorrent', 'connections',
-        'numSeeders', 'errorCode', 'errorMessage',
+        'numSeeders', 'errorCode', 'errorMessage', 'followedBy',
     ];
+
+    // A magnet add makes aria2 create an internal "[METADATA]" download that
+    // fetches the torrent's file list, then spawns the REAL download and sets
+    // followedBy on itself. That metadata entry is an implementation artifact,
+    // not a user download — hide it from the list/counts.
+    function isMetadataOnly(d) {
+        if (!d) return false;
+        if (Array.isArray(d.followedBy) && d.followedBy.length) return true;
+        const f = d.files && d.files[0] && d.files[0].path;
+        return !!(f && f.indexOf('[METADATA]') === 0);
+    }
 
     const BASE_BACKOFF_MS = 1500;
     const MAX_EXTRA_BACKOFF_MS = 15000;
@@ -124,6 +135,7 @@
             const seen = new Set();
             for (const d of list) {
                 if (!d || !d.gid) continue;
+                if (isMetadataOnly(d)) continue;   // skip aria2's internal magnet-metadata download
                 seen.add(d.gid);
                 const existing = this.downloads[d.gid];
                 if (existing) Object.assign(existing, d);

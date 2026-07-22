@@ -17,7 +17,11 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <label class="form-label mb-1" for="pasteText">Magnet links / URLs / Metalinks (one per line)</label>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <label class="form-label mb-0 flex-grow-1" for="pasteText">Magnet links / URLs / Metalinks (one per line)</label>
+                    <button type="button" class="btn btn-sm btn-outline-primary mf-paste-btn" @click="queuePasteClipboard()" title="Paste from clipboard">📋 Paste</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary mf-paste-btn" @click="queue.pasteText = ''" x-show="queue.pasteText" title="Clear">Clear</button>
+                </div>
                 <textarea id="pasteText" class="form-control" rows="5"
                           placeholder="magnet:?xt=...&#10;https://example.com/file.iso&#10;https://example.com/job.metalink"
                           x-model="queue.pasteText"></textarea>

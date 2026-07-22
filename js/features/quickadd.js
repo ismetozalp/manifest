@@ -43,6 +43,20 @@
             bootstrap.Modal.getOrCreateInstance(this.quickAddModalEl).show();
         },
 
+        // Touch-friendly: paste the clipboard into the links box (appending a
+        // line) so a magnet/URL can be added without a keyboard. Falls back to a
+        // hint if the browser/iframe blocks programmatic clipboard reads.
+        async qaPasteClipboard() {
+            try {
+                const t = await navigator.clipboard.readText();
+                if (!t || !t.trim()) return;
+                const cur = (this.quickAdd.text || '').replace(/\s+$/, '');
+                this.quickAdd.text = cur ? cur + '\n' + t.trim() : t.trim();
+            } catch (e) {
+                this.toast('Clipboard blocked — long-press the box and choose Paste.', 'danger');
+            }
+        },
+
         _qaSetDest(path) {
             if (path) this.quickAdd.dir = path;
         },

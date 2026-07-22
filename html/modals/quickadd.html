@@ -16,7 +16,11 @@
                 <button type="button" class="btn-close" @click="_qaCancel()"></button>
             </div>
             <div class="modal-body">
-                <label class="form-label mb-1" for="qaText">Magnet links / URLs (one per line)</label>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <label class="form-label mb-0 flex-grow-1" for="qaText">Magnet links / URLs (one per line)</label>
+                    <button type="button" class="btn btn-sm btn-outline-primary mf-paste-btn" @click="qaPasteClipboard()" title="Paste from clipboard">📋 Paste</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary mf-paste-btn" @click="quickAdd.text = ''" x-show="quickAdd.text" title="Clear">Clear</button>
+                </div>
                 <textarea id="qaText" class="form-control mf-qa-text" rows="4"
                           placeholder="magnet:?xt=...&#10;https://example.com/file.iso&#10;https://example.com/job.metalink"
                           x-model="quickAdd.text"></textarea>

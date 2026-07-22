@@ -57,7 +57,32 @@
         </tr></thead>
         <tbody>
             <template x-for="d in visibleDownloads" :key="d.gid || d.key">
-                <tr class="mf-row"><!-- filled in Phase 4 --></tr>
+                <tr class="mf-row" @contextmenu.prevent="openRowMenu && openRowMenu($event, d)">
+                    <td class="mf-row-type" x-text="rowType(d)"></td>
+                    <td class="mf-row-name" :title="rowName(d)" x-text="rowName(d)"></td>
+                    <td x-text="ManifestUtil.humanSize(d.totalLength)"></td>
+                    <td class="mf-row-progress">
+                        <div class="progress" style="height:0.6rem;">
+                            <div class="progress-bar"
+                                 :class="{'bg-danger': d.status==='error', 'bg-success': d.status==='complete'}"
+                                 role="progressbar" :style="'width:' + rowProgress(d) + '%'"
+                                 :aria-valuenow="rowProgress(d)" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                        <span class="mf-row-pct text-body-secondary" x-text="rowProgress(d) + '%'"></span>
+                    </td>
+                    <td x-text="ManifestUtil.humanSpeed(d.downloadSpeed)"></td>
+                    <td x-text="ManifestUtil.humanSpeed(d.uploadSpeed)"></td>
+                    <td x-text="rowEta(d)"></td>
+                    <td>
+                        <span class="badge"
+                              :class="{'text-bg-primary': d.status==='active', 'text-bg-secondary': d.status==='waiting' || d.status==='paused', 'text-bg-success': d.status==='complete', 'text-bg-danger': d.status==='error'}"
+                              x-text="d.status"></span>
+                    </td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-link" title="Actions"
+                                @click="openRowMenu && openRowMenu($event, d)">⋯</button>
+                    </td>
+                </tr>
             </template>
             <tr x-show="!visibleDownloads.length"><td colspan="9" class="text-body-secondary py-4 text-center">No downloads. Use Quick Add or Paste to Queue.</td></tr>
         </tbody>
@@ -100,6 +125,7 @@
 <script src="js/core/settings.js"></script>
 <script src="js/core/fspicker.js"></script>
 <script src="js/features/serviceui.js"></script>
+<script src="js/features/downloads.js"></script>
 <script src="js/app.js"></script>
 <script src="js/boot.js"></script>
 </body>

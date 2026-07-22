@@ -32,7 +32,11 @@
         return i <= 0 ? '/' : p.slice(0, i);
     }
     function basename(p) { return p.replace(/\/+$/, '').split('/').pop(); }
-    const ManifestUtil = { humanSize, humanSpeed, eta, percent, shq, joinPath, dirname, basename };
+    // Bridge Lesson #2 helper: FileReader.readAsDataURL() yields
+    // "data:<mime>;base64,<payload>" — aria2.addTorrent/addMetalink want the
+    // bare base64 payload. Already-bare input passes through unchanged.
+    function stripDataUrl(dataUrl) { return String(dataUrl).replace(/^data:[^,]*,/, ''); }
+    const ManifestUtil = { humanSize, humanSpeed, eta, percent, shq, joinPath, dirname, basename, stripDataUrl };
     root.ManifestUtil = ManifestUtil;
     if (typeof module !== 'undefined' && module.exports) module.exports = ManifestUtil;
 })(typeof window !== 'undefined' ? window : globalThis);

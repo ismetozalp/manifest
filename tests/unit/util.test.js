@@ -36,3 +36,7 @@ test('paths', () => {
     assert.equal(U.dirname('/a'), '/');
     assert.equal(U.basename('/a/b'), 'b');
 });
+test('stripDataUrl', () => {
+    assert.equal(U.stripDataUrl('data:application/x-bittorrent;base64,QUJD'), 'QUJD');
+    assert.equal(U.stripDataUrl('QUJD'), 'QUJD'); // already bare
+});

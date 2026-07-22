@@ -8,7 +8,8 @@ document.addEventListener('alpine:init', () => {
         ...window.ManifestSettings,   // core/settings.js
         ...window.ManifestFsPicker,   // core/fspicker.js
         ...window.ManifestServiceUI,  // features/serviceui.js
-        // features spread in later phases: downloads, quickadd, actions, queue, detail, update
+        ...window.ManifestDownloads,  // features/downloads.js
+        // features spread in later phases: quickadd, actions, queue, detail, update
 
         // ── State ──
         ready: false,
@@ -19,9 +20,9 @@ document.addEventListener('alpine:init', () => {
         rpc: null,                    // ManifestRpc instance once port+secret known
         toasts: [],
 
-        // ── Placeholder table/filter state (Phase 4 wires this to live data;
-        // kept here now purely so the shell markup below renders clean with
-        // no undefined-reference errors) ──
+        // ── Table/filter state (live data + behavior come from the spread
+        // ...window.ManifestDownloads module above: counts/visibleDownloads/
+        // agg are getters there, sortBy() is a method there) ──
         activeFilter: 'all',
         filterPills: [
             { key: 'all', label: 'All' },
@@ -32,12 +33,11 @@ document.addEventListener('alpine:init', () => {
             { key: 'error', label: 'Error' },
             { key: 'queue', label: 'Queue' },
         ],
-        counts: {},
-        visibleDownloads: [],
-        agg: { down: '0 B/s', up: '0 B/s', active: 0, freeSpace: '' },
-        sortBy() {}, // Phase 4 replaces this stub with a real sort implementation.
+        downloads: {},        // gid-keyed map, kept stable across polls
+        sortKey: 'name',
+        sortDir: 'asc',
 
-        // ── Not-yet-built handlers (Phase 4/5/6 replace these stubs) ──
+        // ── Not-yet-built handlers (Phase 4.2/4.3/5/6 replace these stubs) ──
         // Defined here so the `identifier && identifier()` guards in index.html
         // never throw a ReferenceError — with Alpine's `with(scope){...}`
         // evaluation, an *undeclared* identifier throws even when guarded by
@@ -45,6 +45,7 @@ document.addEventListener('alpine:init', () => {
         openQuickAdd() {},
         openPaste() {},
         openSettings() {},
+        openRowMenu() {}, // Phase 4.3 (actions.js) replaces this with the real context menu.
         onKey() {},
 
         // ── Generic confirm dialog (drives #mfConfirmModal) ──
@@ -81,6 +82,14 @@ document.addEventListener('alpine:init', () => {
             try { await this._loadSettings(); } catch (e) {}
             try { await this._refreshServiceState(); } catch (e) { console.error('[manifest] initial service state check failed:', e); }
             this._startServicePoll();
+            // Download polling tracks svc.active reactively (turnkey setup,
+            // manual Start/Stop, and the 5s health poll all flow through
+            // _refreshServiceState) — it must never start while aria2 isn't
+            // confirmed up (so the no-aria2 smoke stays clean).
+            this.$watch('svc.active', (active) => {
+                if (active) this.startPolling(); else this.stopPolling();
+            });
+            if (this.svc.active) this.startPolling();
             this.ready = true;
         },
 

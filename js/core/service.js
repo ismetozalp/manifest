@@ -120,6 +120,18 @@
         const taken = PortPick.listeningPorts(ssOut);
         const pref = Number(preferred);
         if (pref && !taken.has(pref)) return pref;
+        // pref IS taken: if it's OUR OWN manifest-aria2 unit already listening
+        // there (turnkey re-run against an already-active unit, e.g. after a
+        // settings reset that wiped config but left the service running),
+        // reuse it rather than picking a new port — otherwise setup() writes
+        // a config nobody reloads (see start()) and waits on a port aria2
+        // never binds. Only re-pick when the occupant is something else.
+        if (pref) {
+            try {
+                const st = await status();
+                if (st.active) return pref;
+            } catch (e) { /* fall through to re-pick */ }
+        }
         const port = PortPick.firstFree(ssOut, PortPick.RANGE.lo, PortPick.RANGE.hi);
         if (!port) {
             throw new Error('No free port available in ' + PortPick.RANGE.lo + '-' + PortPick.RANGE.hi + '. Free a port and retry.');
@@ -170,7 +182,17 @@
 
     async function start() {
         await FS.spawn(['systemctl', '--user', 'daemon-reload']);
+        // `enable --now` is a no-op start-wise if the unit is already active
+        // (systemd won't reload/restart a running unit just because it's
+        // being (re-)enabled) — so a freshly-written config (new port/secret)
+        // never gets picked up. Detect "already active" first and force a
+        // restart in that case; enable --now is fine (and sufficient) for the
+        // not-yet-running case.
+        const wasActive = (await status()).active;
         await FS.spawn(['systemctl', '--user', 'enable', '--now', UNIT_NAME]);
+        if (wasActive) {
+            await FS.spawn(['systemctl', '--user', 'restart', UNIT_NAME]);
+        }
         try {
             const user = await currentUser();
             // Unprivileged: systemd-logind's default polkit policy allows a

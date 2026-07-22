@@ -281,14 +281,16 @@
             catch (e) { this.toast('Could not open Explorer — is it installed?', 'danger'); }
         },
 
-        // Deep-link into Cockpit's built-in Files app (cockpit-files), which
-        // routes on a hash path: /files#/absolute/path .
+        // Deep-link into Cockpit's built-in Files app (cockpit-files). It routes
+        // on a hash query: /files#/?path=<url-encoded absolute path>. The raw
+        // "/files#<path>" form silently falls back to $HOME on any path with
+        // spaces/brackets (e.g. a torrent folder), so encode it as the query.
         openInFiles(d) {
             this.closeContextMenu();
             d = d || this.ctxMenu.target;
             const path = this._destFolder(d);
             if (!path) return;
-            try { window.top.location = '/files#' + path; }
+            try { window.top.location = '/files#/?path=' + encodeURIComponent(path); }
             catch (e) { this.toast('Could not open Files — is it installed?', 'danger'); }
         },
     };

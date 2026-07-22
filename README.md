@@ -82,8 +82,10 @@ sudo systemctl try-restart cockpit
 **2. From a release zip** (no checkout needed):
 
 ```bash
-curl -fsSLO https://github.com/<owner>/<repo>/releases/latest/download/manifest-<version>.zip
-unzip manifest-<version>.zip -d /tmp/manifest-install
+# Grab the latest manifest-<version>.zip from the Releases page:
+#   https://github.com/ismetozalp/manifest/releases/latest
+# (or with the gh CLI:  gh release download --repo ismetozalp/manifest --pattern 'manifest-*.zip')
+unzip manifest-*.zip -d /tmp/manifest-install
 sudo make -C /tmp/manifest-install/manifest install
 sudo systemctl try-restart cockpit
 ```

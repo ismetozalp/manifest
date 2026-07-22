@@ -6,6 +6,7 @@ const D = require('../../js/core/defaults.js');
 test('defaults present', () => {
     assert.equal(D.DEFAULT_SETTINGS.limits.maxConcurrentDownloads, 5);
     assert.equal(D.DEFAULT_SETTINGS.limits.maxPeersPerTorrent, 55);
+    assert.equal(D.DEFAULT_SETTINGS.update.repo, 'ismetozalp/manifest');
 });
 test('mergeSettings keeps new default fields and overrides given ones', () => {
     const m = D.mergeSettings({ limits: { maxConcurrentDownloads: 9 } });

@@ -16,7 +16,7 @@
             seedRatio: 1.0,                         // seed-ratio (per torrent)
             seedTimeMin: 0                          // seed-time minutes (0 = disabled)
         },
-        update: { repo: '', checkOnStartup: true }
+        update: { repo: 'ismetozalp/manifest', checkOnStartup: true }
     };
 
     function mergeOne(defaults, loaded) {

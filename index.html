@@ -75,6 +75,8 @@
      x-show="svc.active && activeFilter !== 'queue' && selectedRows.length > 0">
     <span class="fw-medium" x-text="selectedRows.length + ' selected'"></span>
     <div class="vr mx-1"></div>
+    <button class="btn btn-sm btn-outline-primary" x-show="selectedRows.length === 1"
+            @click="openDetail(selectedRows[0])">Details</button>
     <button class="btn btn-sm btn-outline-secondary" @click="bulkResume()">Resume</button>
     <button class="btn btn-sm btn-outline-secondary" @click="bulkPause()">Pause</button>
     <button class="btn btn-sm btn-outline-secondary" @click="bulkRetry()">Retry</button>
@@ -205,6 +207,19 @@
     <div class="dropdown-divider"></div>
     <button class="dropdown-item text-danger" @click="removeDl(ctxMenu.target)">Remove</button>
     <button class="dropdown-item text-danger" @click="removeAndDelete(ctxMenu.target)">Remove &amp; delete files</button>
+</div>
+
+<!-- MINIMIZED-DETAILS TASKBAR: fixed bottom bar of minimized detail dialogs.
+     Floats above the modal layer so it stays clickable; click a chip to restore
+     the dialog, × to dismiss it. -->
+<div class="mf-taskbar" x-cloak x-show="minimizedDetails.length > 0">
+    <template x-for="m in minimizedDetails" :key="m.gid">
+        <div class="mf-taskbar-item" @click="restoreDetail(m.gid)" :title="m.name">
+            <span class="mf-taskbar-ico">🗔</span>
+            <span class="mf-taskbar-label" x-text="m.name"></span>
+            <button type="button" class="mf-taskbar-close" title="Close" @click.stop="closeMinimized(m.gid)">✕</button>
+        </div>
+    </template>
 </div>
 
 <!-- toasts -->

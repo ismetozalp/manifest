@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.1.0
+
+### Download detail
+- **Minimize to a bottom bar.** The detail dialog now has a minimize button
+  that docks it to a fixed taskbar at the bottom of the window (like Explorer's
+  file preview/editor). Click a chip to restore the dialog, × to dismiss it;
+  multiple details can be minimized at once. Minimized chips are pruned
+  automatically when their download is removed.
+- **Percent on the progress bar (General tab).** The General tab's progress now
+  shows the percentage centered on the bar, matching the main table, instead of
+  as separate text below it. The bar is also coloured by status (green complete
+  / red error).
+
+### Download table
+- **Details in the selection bar.** When exactly one row is selected, the
+  bulk-action bar shows a **Details** button that opens that download's dialog.
+
 ## 1.0.2
 
 ### Download table

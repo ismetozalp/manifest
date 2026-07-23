@@ -272,8 +272,52 @@ try {
             return { all, some, none };
         });
         check('folder tri-state is all/some/none', tri.all === 'all' && tri.some === 'some' && tri.none === 'none', JSON.stringify(tri));
+
+        // ---- General tab: percent centered ON the progress bar (v1.1 fix) ----
+        await app.evaluate(() => {
+            const d = window.Alpine.$data(document.querySelector('[x-data]'));
+            // Point the open detail at a real row ('b') so restore-from-taskbar can reopen it.
+            d.detail.gid = 'b';
+            d.detail.data = { gid: 'b', status: 'active', completedLength: '400000000', totalLength: '1000000000', downloadSpeed: '6500000', uploadSpeed: '0', bittorrent: { info: { name: 'Test Torrent 2160p' } }, files: [{ path: '/dl/Test Torrent 2160p/movie.mkv' }] };
+            d.detailSwitchTab('general');
+        });
+        await page.waitForTimeout(200);
+        const genPct = await app.evaluate(() => {
+            const bar = document.querySelector('#mfDetail .progress');
+            const pct = bar && bar.querySelector('.mf-row-pct');
+            return { onBar: !!pct, text: pct ? pct.textContent.trim() : '' };
+        });
+        check('General tab shows percent ON the progress bar (not below it)', genPct.onBar && /40%/.test(genPct.text), JSON.stringify(genPct));
+
+        // ---- Minimize detail → bottom taskbar → restore (v1.1 item 4) ----
+        await app.evaluate(() => window.Alpine.$data(document.querySelector('[x-data]')).minimizeDetail());
+        await page.waitForTimeout(400);
+        const min = await app.evaluate(() => {
+            const d = window.Alpine.$data(document.querySelector('[x-data]'));
+            return { count: d.minimizedDetails.length, name: (d.minimizedDetails[0] || {}).name, modalShown: document.querySelector('#mfDetail').classList.contains('show') };
+        });
+        check('minimize hides the modal and adds a taskbar chip', min.count === 1 && !min.modalShown, JSON.stringify(min));
+        check('taskbar chip is visible with the download name', await app.locator('.mf-taskbar .mf-taskbar-item').isVisible() && /Test Torrent/.test(min.name || ''));
+        // restore by clicking the chip
+        await app.locator('.mf-taskbar .mf-taskbar-item').first().click();
+        await app.locator('#mfDetail.show').waitFor({ timeout: 4000 }).catch(() => {});
+        const restored = await app.evaluate(() => {
+            const d = window.Alpine.$data(document.querySelector('[x-data]'));
+            return { minCount: d.minimizedDetails.length, modalShown: document.querySelector('#mfDetail').classList.contains('show') };
+        });
+        check('clicking the chip restores the modal and clears the chip', restored.modalShown && restored.minCount === 0, JSON.stringify(restored));
+
         await app.evaluate(() => { const d = window.Alpine.$data(document.querySelector('[x-data]')); bootstrap.Modal.getOrCreateInstance(d.detailModalEl).hide(); d.detail.open = false; });
         await page.waitForTimeout(300);
+
+        // ---- Details button in the selection bar when exactly one row is selected (item 2) ----
+        await app.evaluate(() => { const d = window.Alpine.$data(document.querySelector('[x-data]')); d.selection = new Set(['b']); });
+        await page.waitForTimeout(150);
+        check('selection bar shows a Details button for a single selection', await app.locator('.mf-bulkbar button', { hasText: /^Details$/ }).isVisible());
+        await app.evaluate(() => { const d = window.Alpine.$data(document.querySelector('[x-data]')); d.selection = new Set(['b', 'c']); });
+        await page.waitForTimeout(150);
+        check('Details button hidden when multiple rows are selected', !(await app.locator('.mf-bulkbar button', { hasText: /^Details$/ }).isVisible().catch(() => false)));
+        await app.evaluate(() => window.Alpine.$data(document.querySelector('[x-data]')).clearSelection());
     } else {
         check('table/context-menu/detail checks (skipped — aria2 not running)', true, 'set up aria2 to exercise these');
     }

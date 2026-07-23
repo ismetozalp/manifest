@@ -107,6 +107,61 @@ body.mf-col-resizing, body.mf-col-resizing * {
     font-size: 0.9rem;
 }
 
+/* Detail-modal minimize button (header, next to the close ✕). */
+.mf-min-btn { color: var(--bs-secondary-color); line-height: 1; }
+.mf-min-btn:hover { color: var(--bs-body-color); }
+
+/* Minimized-details taskbar: fixed to the bottom, floating above the modal
+   layer (Bootstrap modal 1055 / backdrop 1050) so chips stay clickable. */
+.mf-taskbar {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: 1090;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    padding: 5px 10px;
+    background: var(--bs-tertiary-bg);
+    border-top: 1px solid var(--bs-border-color);
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    min-height: 38px;
+}
+.mf-taskbar-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex: 0 0 auto;
+    background: var(--bs-body-bg);
+    border: 1px solid var(--bs-border-color);
+    border-radius: 6px;
+    padding: 4px 6px 4px 10px;
+    cursor: pointer;
+    max-width: 260px;
+    user-select: none;
+}
+.mf-taskbar-item:hover { border-color: var(--bs-primary); }
+.mf-taskbar-ico { font-size: 13px; line-height: 1; }
+.mf-taskbar-label {
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 190px;
+}
+.mf-taskbar-close {
+    border: none;
+    background: transparent;
+    color: var(--bs-secondary-color);
+    font-size: 11px;
+    line-height: 1;
+    padding: 2px 4px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+.mf-taskbar-close:hover { color: var(--bs-body-color); background: var(--bs-secondary-bg); }
+
 /* ── Aggregate status bar (bottom) ── */
 .mf-statusbar {
     border-top: 1px solid var(--bs-border-color);

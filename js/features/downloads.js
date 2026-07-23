@@ -151,6 +151,11 @@
                 const pruned = root.ManifestSelection.prune(this.selection, Object.keys(this.downloads));
                 if (pruned.size !== this.selection.size) this.selection = pruned;
             }
+            // Drop minimized-detail chips for downloads that no longer exist.
+            if (this.minimizedDetails && this.minimizedDetails.length) {
+                const kept = this.minimizedDetails.filter((m) => this.downloads[m.gid]);
+                if (kept.length !== this.minimizedDetails.length) this.minimizedDetails = kept;
+            }
         },
 
         async _refreshFreeSpace() {

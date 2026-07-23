@@ -89,6 +89,8 @@
     const ManifestDetail = {
         detailModalEl: null,
         detail: freshDetail(),
+        // Detail sessions minimized to the bottom taskbar: [{ gid, name }].
+        minimizedDetails: [],
         _detailPollTimer: null,
         _detailPollInFlight: false,
         _detailVisHandler: null,
@@ -98,9 +100,38 @@
         openDetail(d) {
             this.closeContextMenu && this.closeContextMenu();
             if (!d || !d.gid) return;
+            // Restoring/opening a download clears any minimized chip for it.
+            this.minimizedDetails = this.minimizedDetails.filter((m) => m.gid !== d.gid);
             this.detail = Object.assign(freshDetail(), { open: true, gid: d.gid });
             bootstrap.Modal.getOrCreateInstance(this.detailModalEl).show();
             this._detailStartPoll();
+        },
+
+        // Minimize the open detail to the bottom taskbar (keeps it a click away
+        // without polling in the background). The hidden.bs.modal listener in
+        // detail.html stops the poll once the hide animation finishes.
+        minimizeDetail() {
+            const gid = this.detail && this.detail.gid;
+            if (!gid) return;
+            const name = this.detailName() || gid;
+            if (!this.minimizedDetails.some((m) => m.gid === gid)) {
+                this.minimizedDetails.push({ gid, name });
+            }
+            bootstrap.Modal.getOrCreateInstance(this.detailModalEl).hide();
+        },
+
+        // Restore a minimized detail: reopen it if the download still exists,
+        // otherwise drop the (now-stale) chip.
+        restoreDetail(gid) {
+            const d = this.downloads[gid];
+            if (d) { this.openDetail(d); return; }
+            this.minimizedDetails = this.minimizedDetails.filter((m) => m.gid !== gid);
+            this.toast('That download is no longer available', 'danger');
+        },
+
+        // Dismiss a minimized chip without restoring it.
+        closeMinimized(gid) {
+            this.minimizedDetails = this.minimizedDetails.filter((m) => m.gid !== gid);
         },
 
         closeDetail() {

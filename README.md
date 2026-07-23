@@ -52,7 +52,8 @@ with a shared destination/configure-on-start step.
 **Full-depth torrent support** — General/Files/Peers/Trackers detail tabs,
 magnet metadata fetch, and per-file selection: a collapsible checkbox tree with
 folder tri-state, at add-time (Quick Add / Paste-to-Queue) or anytime from a
-torrent's detail view.
+torrent's detail view. The detail dialog can be **minimized to a bottom taskbar**
+(like a file preview) and restored with a click.
 
 ![Per-file selection tree](screenshots/filetree.png)
 

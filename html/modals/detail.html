@@ -15,7 +15,13 @@
         <div class="modal-content" style="height: min(82vh, 40rem);">
             <div class="modal-header">
                 <h5 class="modal-title text-truncate" x-text="detailName()"></h5>
-                <button type="button" class="btn-close" @click="closeDetail()"></button>
+                <div class="d-flex align-items-center gap-2 ms-2">
+                    <button type="button" class="btn btn-sm btn-link p-0 mf-min-btn" title="Minimize to the bar"
+                            aria-label="Minimize" @click="minimizeDetail()">
+                        <svg width="15" height="15" viewBox="0 0 15 15" aria-hidden="true"><rect x="3" y="11" width="9" height="1.6" rx="0.5" fill="currentColor"/></svg>
+                    </button>
+                    <button type="button" class="btn-close" @click="closeDetail()"></button>
+                </div>
             </div>
             <div class="modal-body" style="overflow-y: auto;">
                 <!-- horizontal tab strip -->
@@ -50,10 +56,15 @@
                             <dt class="col-sm-3">Size</dt><dd class="col-sm-9" x-text="ManifestUtil.humanSize(detail.data.totalLength)"></dd>
                             <dt class="col-sm-3">Progress</dt>
                             <dd class="col-sm-9">
-                                <div class="progress" style="height:0.6rem; max-width: 20rem;">
-                                    <div class="progress-bar" role="progressbar" :style="'width:' + detailProgress() + '%'"></div>
+                                <div class="progress position-relative" style="height:1.2rem; max-width: 20rem;">
+                                    <div class="progress-bar"
+                                         :class="{'bg-danger': detail.data.status==='error', 'bg-success': detail.data.status==='complete'}"
+                                         role="progressbar" :style="'width:' + detailProgress() + '%'"
+                                         :aria-valuenow="detailProgress()" aria-valuemin="0" aria-valuemax="100"></div>
+                                    <!-- percent centered ON the bar, matching the main table -->
+                                    <span class="mf-row-pct position-absolute top-50 start-50 translate-middle small fw-medium"
+                                          x-text="detailProgress() + '%'"></span>
                                 </div>
-                                <span class="text-body-secondary" x-text="detailProgress() + '%'"></span>
                             </dd>
                             <dt class="col-sm-3">Down / Up</dt>
                             <dd class="col-sm-9" x-text="ManifestUtil.humanSpeed(detail.data.downloadSpeed) + ' / ' + ManifestUtil.humanSpeed(detail.data.uploadSpeed)"></dd>

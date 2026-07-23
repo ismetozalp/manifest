@@ -157,6 +157,38 @@ try {
         check('percent shown inside the bar', /%/.test(pctText), pctText);
         const badges = (await app.locator('.mf-row .badge').allInnerTexts().catch(() => [])).join(',');
         check('status badges render (active/complete)', /active/i.test(badges) && /complete/i.test(badges), badges);
+
+        // ---- Resizable columns: fixed layout (anti-shake) + grips + drag-persist ----
+        const layout = await app.evaluate(() => getComputedStyle(document.querySelector('.mf-table')).tableLayout);
+        check('download table uses fixed layout (anti-shake)', layout === 'fixed', `table-layout=${layout}`);
+        const grips = await app.locator('.mf-table thead .mf-col-grip').count();
+        check('every column boundary has a resize grip', grips === 8, `grips=${grips}`);
+        // No-shake proof: widen a speed value ("9 MiB/s" → "999.9 MiB/s") and assert
+        // the Size header does not move — with fixed layout, content can't shift columns.
+        const sizeXBefore = await app.evaluate(() => document.querySelectorAll('.mf-table thead th')[2].getBoundingClientRect().x);
+        await app.evaluate(() => { const d = window.Alpine.$data(document.querySelector('[x-data]')); d.downloads.b.downloadSpeed = '1048471142'; });
+        await page.waitForTimeout(200);
+        const sizeXAfter = await app.evaluate(() => document.querySelectorAll('.mf-table thead th')[2].getBoundingClientRect().x);
+        check('columns hold position when a speed value changes width (no row-shake)', Math.abs(sizeXBefore - sizeXAfter) < 1, `Δx=${(sizeXAfter - sizeXBefore).toFixed(2)}`);
+        // Drag the grip between Name(1) and Size(2): Name should widen, Size shrink, and persist.
+        const before = await app.evaluate(() => window.Alpine.$data(document.querySelector('[x-data]')).colWidths.slice());
+        await app.evaluate(() => {
+            const grip = document.querySelectorAll('.mf-table thead .mf-col-grip')[1]; // boundary index 1
+            const r = grip.getBoundingClientRect();
+            const x0 = r.left + r.width / 2, y = r.top + r.height / 2;
+            const opts = (x) => ({ bubbles: true, cancelable: true, clientX: x, clientY: y });
+            grip.dispatchEvent(new MouseEvent('mousedown', opts(x0)));
+            document.dispatchEvent(new MouseEvent('mousemove', opts(x0 + 90)));
+            document.dispatchEvent(new MouseEvent('mouseup', opts(x0 + 90)));
+        });
+        await page.waitForTimeout(150);
+        const after = await app.evaluate(() => window.Alpine.$data(document.querySelector('[x-data]')).colWidths.slice());
+        check('dragging a grip resizes columns (Name grows, Size shrinks, total preserved)',
+            after[1] > before[1] && after[2] < before[2] && Math.abs((after[1] + after[2]) - (before[1] + before[2])) < 0.5,
+            `${JSON.stringify(before.slice(1, 3))} → ${JSON.stringify(after.slice(1, 3))}`);
+        const persisted = await app.evaluate(() => window.Alpine.$data(document.querySelector('[x-data]')).settings.columns.widths.slice());
+        check('resized widths land in settings (persisted to settings.yml)', JSON.stringify(persisted) === JSON.stringify(after), JSON.stringify(persisted));
+
         // row context menu: open on first row's ⋯, must be in viewport and show deep-link items
         await app.locator('.mf-row button', { hasText: '⋯' }).first().click({ timeout: 4000 });
         await page.waitForTimeout(200);

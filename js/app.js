@@ -31,6 +31,7 @@ document.addEventListener('alpine:init', () => {
         window.ManifestDetail,      // features/detail.js  (General/Files/Peers/Trackers tabs)
         window.ManifestUpdate,      // features/update.js  (version badge state + self-update)
         window.ManifestSettingsUI,  // features/settings-ui.js  (Settings modal)
+        window.ManifestColumnsUI,   // features/columns.js  (resizable table columns)
     {
         // ── State ──
         ready: false,

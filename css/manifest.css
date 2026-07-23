@@ -50,7 +50,46 @@ body { margin: 0; }
 
 /* ── Unified download table: full width, single column layout ── */
 .mf-main { width: 100%; overflow-x: auto; }
-.mf-table { width: 100%; }
+/* Fixed layout: column widths come from the <colgroup>, never from cell
+   content — so a speed flipping "9 MiB/s" → "11 MiB/s" can't widen a column
+   and shove every other column sideways (the row-shake bug). */
+.mf-table { width: 100%; table-layout: fixed; }
+.mf-table th, .mf-table td {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+/* keep the progress cell's bar from being clipped by the ellipsis rule */
+.mf-table td.mf-row-progress { overflow: visible; }
+
+/* Column resize grips: a hit-area on the right edge of each header cell. */
+.mf-table thead th { position: relative; }
+.mf-col-grip {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 9px;
+    height: 100%;
+    cursor: col-resize;
+    user-select: none;
+    touch-action: none;
+}
+.mf-col-grip::after {
+    content: "";
+    position: absolute;
+    top: 20%;
+    right: 4px;
+    width: 1px;
+    height: 60%;
+    background: var(--bs-border-color);
+    transition: background-color .1s, width .1s;
+}
+.mf-col-grip:hover::after { background: var(--bs-primary); width: 2px; }
+/* while dragging, force the resize cursor everywhere and kill text selection */
+body.mf-col-resizing, body.mf-col-resizing * {
+    cursor: col-resize !important;
+    user-select: none !important;
+}
 
 /* ── Aggregate status bar (bottom) ── */
 .mf-statusbar {

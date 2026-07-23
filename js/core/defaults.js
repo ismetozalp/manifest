@@ -1,9 +1,13 @@
 'use strict';
 (function (root) {
+    const Columns = root.ManifestColumns
+        || (typeof require !== 'undefined' ? require('./columns.js') : null);
+
     const DEFAULT_SETTINGS = {
         theme: 'system',                           // ManifestThemes id
         rpc: { port: null, secret: null },        // filled at setup
         pollIntervalMs: 1500,
+        columns: { widths: Columns.DEFAULT_WIDTHS.slice() },  // download-table column widths (%)
         destinations: { default: null, bookmarks: [], recents: [] },
         limits: {
             maxConcurrentDownloads: 5,              // max-concurrent-downloads
@@ -29,6 +33,7 @@
             theme: loaded.theme != null ? loaded.theme : DEFAULT_SETTINGS.theme,
             rpc: mergeOne(DEFAULT_SETTINGS.rpc, loaded.rpc),
             pollIntervalMs: loaded.pollIntervalMs != null ? loaded.pollIntervalMs : DEFAULT_SETTINGS.pollIntervalMs,
+            columns: { widths: Columns.normalizeWidths(loaded.columns && loaded.columns.widths) },
             destinations: mergeOne(DEFAULT_SETTINGS.destinations, loaded.destinations),
             limits: mergeOne(DEFAULT_SETTINGS.limits, loaded.limits),
             update: mergeOne(DEFAULT_SETTINGS.update, loaded.update)

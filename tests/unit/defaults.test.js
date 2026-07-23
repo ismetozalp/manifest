@@ -22,6 +22,20 @@ test('theme defaults to system and merges', () => {
     assert.equal(D.DEFAULT_SETTINGS.theme, 'system');
     assert.equal(D.mergeSettings({ theme: 'aqua' }).theme, 'aqua');
 });
+test('columns: default widths present and merged; a valid saved layout round-trips', () => {
+    assert.equal(D.DEFAULT_SETTINGS.columns.widths.length, 9);
+    // empty settings → default widths
+    assert.deepEqual(D.mergeSettings({}).columns.widths, D.DEFAULT_SETTINGS.columns.widths);
+    // a user-resized layout persists verbatim
+    const saved = [5, 20, 8, 20, 12, 12, 7, 8, 8];
+    assert.deepEqual(D.mergeSettings({ columns: { widths: saved } }).columns.widths, saved);
+});
+test('columns: a corrupt/old saved layout falls back to defaults (never breaks the table)', () => {
+    assert.deepEqual(D.mergeSettings({ columns: { widths: [1, 2, 3] } }).columns.widths, D.DEFAULT_SETTINGS.columns.widths);
+    assert.deepEqual(D.mergeSettings({ columns: { widths: 'bogus' } }).columns.widths, D.DEFAULT_SETTINGS.columns.widths);
+    assert.deepEqual(D.mergeSettings({ columns: {} }).columns.widths, D.DEFAULT_SETTINGS.columns.widths);
+    assert.deepEqual(D.mergeSettings({ columns: null }).columns.widths, D.DEFAULT_SETTINGS.columns.widths);
+});
 test('toAria2GlobalOptions maps + clamps + formats speeds', () => {
     const o = D.toAria2GlobalOptions(D.mergeSettings({
         limits: { maxConnectionsPerServer: 99, downloadLimitKiB: 500, minSplitSizeMiB: 20 }

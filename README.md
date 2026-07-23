@@ -32,8 +32,11 @@ plugin-internal sidebar; Cockpit's own left nav is the only one.
 
 **Unified download manager** — one full-width table for torrents, magnets, and
 HTTP/FTP; live progress (percent on the bar), ↓/↑ speeds, ETA, and per-row
-actions. No plugin-internal sidebar: filters are a horizontal pill row; detail,
-settings, and add flows are modals, never a second side rail.
+actions. **Resizable columns** — drag any column's edge to re-proportion the
+table; widths persist to `settings.yml`. The table uses a fixed layout, so rows
+never shake sideways when a speed value changes width. No plugin-internal
+sidebar: filters are a horizontal pill row; detail, settings, and add flows are
+modals, never a second side rail.
 
 ![Unified download manager](screenshots/downloads.png)
 
@@ -163,7 +166,7 @@ All Manifest state is per-user, under `$HOME/.config/cockpit/manifest/`:
 |---|---|
 | `aria2.conf` | Generated aria2 daemon configuration (port, secret, session path, tuning) |
 | `aria2.session` | aria2's persisted download session (resumable on restart) |
-| `settings.yml` | Manifest settings — theme, RPC port/poll interval, limits, bookmarks, recents, update repo |
+| `settings.yml` | Manifest settings — theme, RPC port/poll interval, limits, bookmarks, recents, table column widths, update repo |
 | `queue.json` | Staged (not-yet-started) download queue from Paste-to-Queue |
 
 System-level files (root-owned, written by `make install` / self-update):

@@ -1,6 +1,19 @@
 # Changelog
 
-## 1.0.0 — unreleased
+## 1.0.1
+
+### Download table
+- **Resizable columns** — every column has a drag grip on its right edge;
+  widths are stored as percentages in `settings.yml` (`columns.widths`) and
+  restored on load. A corrupt or out-of-date saved layout falls back to the
+  defaults rather than breaking the table.
+- **Fixed table layout** — the table now uses `table-layout: fixed`, so a
+  column's width no longer depends on its cell content. This fixes rows
+  shaking left/right when a speed value flipped between one and two digits
+  (e.g. `9 MiB/s` → `11 MiB/s`); cell content that overflows a column is
+  ellipsized instead of widening it.
+
+## 1.0.0
 
 Initial release.
 

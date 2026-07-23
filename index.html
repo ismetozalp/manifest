@@ -97,9 +97,23 @@
 <!-- UNIFIED TABLE (one row per download) -->
 <main class="mf-main px-3" x-show="svc.active && activeFilter !== 'queue'">
     <table class="table table-sm mf-table align-middle">
+        <colgroup>
+            <col :style="'width:' + colWidths[0] + '%'"><col :style="'width:' + colWidths[1] + '%'">
+            <col :style="'width:' + colWidths[2] + '%'"><col :style="'width:' + colWidths[3] + '%'">
+            <col :style="'width:' + colWidths[4] + '%'"><col :style="'width:' + colWidths[5] + '%'">
+            <col :style="'width:' + colWidths[6] + '%'"><col :style="'width:' + colWidths[7] + '%'">
+            <col :style="'width:' + colWidths[8] + '%'">
+        </colgroup>
         <thead><tr>
-            <th></th><th @click="sortBy('name')">Name</th><th @click="sortBy('size')">Size</th>
-            <th>Progress</th><th>↓</th><th>↑</th><th>ETA</th><th>Status</th><th></th>
+            <th><span class="mf-col-grip" title="Drag to resize" @mousedown="startColResize($event, 0)"></span></th>
+            <th @click="sortBy('name')">Name<span class="mf-col-grip" title="Drag to resize" @mousedown="startColResize($event, 1)"></span></th>
+            <th @click="sortBy('size')">Size<span class="mf-col-grip" title="Drag to resize" @mousedown="startColResize($event, 2)"></span></th>
+            <th>Progress<span class="mf-col-grip" title="Drag to resize" @mousedown="startColResize($event, 3)"></span></th>
+            <th>↓<span class="mf-col-grip" title="Drag to resize" @mousedown="startColResize($event, 4)"></span></th>
+            <th>↑<span class="mf-col-grip" title="Drag to resize" @mousedown="startColResize($event, 5)"></span></th>
+            <th>ETA<span class="mf-col-grip" title="Drag to resize" @mousedown="startColResize($event, 6)"></span></th>
+            <th>Status<span class="mf-col-grip" title="Drag to resize" @mousedown="startColResize($event, 7)"></span></th>
+            <th></th>
         </tr></thead>
         <tbody>
             <template x-for="d in visibleDownloads" :key="d.gid || d.key">
@@ -188,6 +202,7 @@
 <script src="js/core/aria2conf.js"></script>
 <script src="js/core/portpick.js"></script>
 <script src="js/core/installcmd.js"></script>
+<script src="js/core/columns.js"></script>
 <script src="js/core/defaults.js"></script>
 <script src="js/js-yaml.min.js"></script>
 <script src="js/fs.js"></script>
@@ -207,6 +222,7 @@
 <script src="js/features/detail.js"></script>
 <script src="js/features/update.js"></script>
 <script src="js/features/settings-ui.js"></script>
+<script src="js/features/columns.js"></script>
 <script src="js/core/modalstack.js"></script>
 <script src="js/app.js"></script>
 <script src="js/boot.js"></script>

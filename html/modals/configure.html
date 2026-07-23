@@ -70,12 +70,13 @@
                                 </div>
                                 <div class="mf-filetree border rounded" style="max-height:260px; overflow:auto;">
                                     <template x-for="row in cfgTreeRows" :key="row.key">
-                                        <div class="mf-tree-row d-flex align-items-center gap-2 px-2 py-1" :style="'padding-left:' + (0.5 + row.depth*1.25) + 'rem'">
+                                        <div class="mf-tree-row d-flex align-items-center gap-2 px-2 py-1">
+                                            <template x-for="i in row.depth" :key="i"><span class="mf-tree-guide"></span></template>
                                             <template x-if="row.node.dir">
-                                                <span class="d-flex align-items-center gap-2 w-100" style="min-width:0;">
-                                                    <button type="button" class="btn btn-sm btn-link p-0 text-body-secondary" style="width:1rem;"
+                                                <span class="d-flex align-items-center gap-2 flex-grow-1" style="min-width:0;">
+                                                    <button type="button" class="btn btn-sm btn-link p-0 mf-tree-caret text-body-secondary"
                                                             @click="cfgToggleFolder(row.key)" x-text="row.collapsed ? '▸' : '▾'"></button>
-                                                    <input class="form-check-input mt-0" type="checkbox"
+                                                    <input class="form-check-input mt-0 flex-shrink-0" type="checkbox"
                                                            :checked="cfgFolderState(row.node)==='all'"
                                                            x-effect="$el.indeterminate = (cfgFolderState(row.node)==='some')"
                                                            @change="cfgToggleTreeFolder(row.node)">
@@ -83,9 +84,9 @@
                                                 </span>
                                             </template>
                                             <template x-if="!row.node.dir">
-                                                <span class="d-flex align-items-center gap-2 w-100" style="min-width:0;">
-                                                    <span style="width:1rem;"></span>
-                                                    <input class="form-check-input mt-0" type="checkbox"
+                                                <span class="d-flex align-items-center gap-2 flex-grow-1" style="min-width:0;">
+                                                    <span class="mf-tree-spacer"></span>
+                                                    <input class="form-check-input mt-0 flex-shrink-0" type="checkbox"
                                                            :checked="cfgFileChecked(row.node)" @change="cfgToggleTreeFile(row.node)">
                                                     <span class="text-truncate flex-grow-1" :title="row.node.name" x-text="row.node.name"></span>
                                                     <span class="text-body-secondary small flex-shrink-0" x-text="ManifestUtil.humanSize(row.node.length)"></span>

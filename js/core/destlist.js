@@ -3,11 +3,13 @@
 'use strict';
 (function (root) {
     function pushRecent(list, path, cap) {
-        list = Array.isArray(list) ? list : [];
-        cap = Number(cap) || 0;
-        const rest = list.filter((p) => p !== path);
-        const next = [path].concat(rest);
-        return cap > 0 ? next.slice(0, cap) : next;
+        const rest = (Array.isArray(list) ? list : []).filter((p) => p !== path);
+        // Don't record an empty/nullish path.
+        const next = (path == null || path === '') ? rest : [path].concat(rest);
+        const c = Number(cap);
+        if (!Number.isFinite(c)) return next;   // absent/invalid cap → no capping
+        if (c <= 0) return [];                   // explicit 0 (or negative) → empty
+        return next.slice(0, c);
     }
 
     const ManifestDestList = { pushRecent };

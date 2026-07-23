@@ -131,7 +131,7 @@ test('removeById: present id removed, absent id is a no-op, empty list stays emp
     assert.deepEqual(Q.removeById([], 'a'), []);
 });
 
-test('validate: every non-unknown type is valid, unknown/missing/no-type-field is not (or is — see note)', () => {
+test('validate: only the known source types are valid; unknown/missing/bogus are rejected', () => {
     assert.equal(Q.validate({ type: 'magnet' }), true);
     assert.equal(Q.validate({ type: 'http' }), true);
     assert.equal(Q.validate({ type: 'metalink' }), true);
@@ -139,10 +139,9 @@ test('validate: every non-unknown type is valid, unknown/missing/no-type-field i
     assert.equal(Q.validate({ type: 'unknown' }), false);
     assert.equal(Q.validate(null), false);
     assert.equal(Q.validate(undefined), false);
-    // NOTE (suspected bug): validate() only excludes the literal string 'unknown';
-    // an item with no `type` at all (type === undefined) is NOT excluded, so this
-    // returns true even though such an item is not one of the known valid types.
-    assert.equal(Q.validate({}), true);
+    // an item with no type field, or an unrecognized type, is not valid
+    assert.equal(Q.validate({}), false);
+    assert.equal(Q.validate({ type: 'ftpx' }), false);
 });
 
 test('serialize/deserialize: full item round-trip; deserialize tolerates bad/non-array/null/undefined input', () => {

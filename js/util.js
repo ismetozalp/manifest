@@ -23,7 +23,8 @@
     function percent(done, total) {
         total = Number(total) || 0; done = Number(done) || 0;
         if (total <= 0) return 0;
-        return Math.min(100, Math.floor(done / total * 100));
+        const p = Math.floor(done / total * 100);
+        return p < 0 ? 0 : (p > 100 ? 100 : p);   // clamp to [0, 100]
     }
     function shq(s) { return "'" + String(s).replace(/'/g, "'\\''") + "'"; }
     function joinPath(base, name) { return (base.endsWith('/') ? base : base + '/') + name; }
@@ -57,7 +58,11 @@
         return false;
     }
     function selectFileCsv(selectedIndexSet, total) {
-        const indices = Array.from(selectedIndexSet || []).filter((n) => Number.isInteger(n) && n >= 1 && n <= (Number(total) || Infinity));
+        // A finite total (incl. 0) is a strict upper bound; an absent/NaN total is
+        // treated leniently (no upper bound). total=0 → no valid indices → ''.
+        const t = Number(total);
+        const upper = Number.isFinite(t) ? t : Infinity;
+        const indices = Array.from(selectedIndexSet || []).filter((n) => Number.isInteger(n) && n >= 1 && n <= upper);
         indices.sort((a, b) => a - b);
         return indices.join(',');
     }

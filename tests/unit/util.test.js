@@ -123,8 +123,9 @@ test('percent 0/0 and done greater than total', () => {
     assert.equal(U.percent(0, 0), 0);
     assert.equal(U.percent(3, 2), 100); // capped at 100
 });
-test('percent negative done is NOT clamped to 0 (only capped at 100)', () => {
-    assert.equal(U.percent(-1, 10), -10);
+test('percent clamps a negative result to 0', () => {
+    assert.equal(U.percent(-1, 10), 0);
+    assert.equal(U.percent(-100, 10), 0);
 });
 test('percent negative or zero total returns 0', () => {
     assert.equal(U.percent(10, -5), 0);
@@ -208,9 +209,12 @@ test('selectFileCsv excludes non-integers and negatives', () => {
     assert.equal(U.selectFileCsv(new Set([1.5, 2]), 5), '2');
     assert.equal(U.selectFileCsv(new Set([-1, 1]), 5), '1');
 });
-test('selectFileCsv with total=0 applies no upper cap (falsy total -> Infinity)', () => {
-    // Number(0) || Infinity -> 0 is falsy, so the cap becomes Infinity here.
-    assert.equal(U.selectFileCsv(new Set([1, 100]), 0), '1,100');
+test('selectFileCsv with total=0 rejects all indices (no valid files)', () => {
+    assert.equal(U.selectFileCsv(new Set([1, 100]), 0), '');
+});
+test('selectFileCsv with an absent/NaN total stays lenient (no upper bound)', () => {
+    assert.equal(U.selectFileCsv(new Set([1, 100]), undefined), '1,100');
+    assert.equal(U.selectFileCsv(new Set([2, 5]), NaN), '2,5');
 });
 
 // --- semverGt: equal, patch/minor/major, 1.10 vs 1.2, lengths, leading zeros, non-numeric ---

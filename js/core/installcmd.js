@@ -38,7 +38,7 @@
     }
 
     function staticFallbackPlan(home) {
-        const dir = home + '/.local/bin';
+        const dir = String(home || '').replace(/\/+$/, '') + '/.local/bin';   // normalize trailing slash
         const binPath = dir + '/aria2c';
         const archivePath = dir + '/aria2-static.tar.gz';
         const steps = [

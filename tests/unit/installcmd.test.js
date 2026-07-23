@@ -115,12 +115,12 @@ test('staticFallbackPlan steps include curl download and chmod +x on the binary'
     assert.equal(curlStep[curlStep.length - 1], I.STATIC_ARIA2_URL);
 });
 
-test('staticFallbackPlan with trailing slash in home does not normalize the double slash', () => {
-    // Documents actual (naive string-concat) behavior: no path normalization,
-    // so a trailing slash on `home` produces a doubled slash in dir/binPath.
+test('staticFallbackPlan normalizes a trailing slash in home (no doubled slash)', () => {
     const p = I.staticFallbackPlan('/home/u/');
-    assert.equal(p.dir, '/home/u//.local/bin');
-    assert.equal(p.binPath, '/home/u//.local/bin/aria2c');
+    assert.equal(p.dir, '/home/u/.local/bin');
+    assert.equal(p.binPath, '/home/u/.local/bin/aria2c');
+    // multiple trailing slashes collapse too
+    assert.equal(I.staticFallbackPlan('/home/u///').dir, '/home/u/.local/bin');
 });
 
 test('staticFallbackPlan with special characters (spaces, parens) in home', () => {

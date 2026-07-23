@@ -89,7 +89,9 @@
     }
 
     function validate(item) {
-        return !!item && item.type !== 'unknown';
+        // Only the known source types are valid — an item with no type, an
+        // unrecognized type, or 'unknown' is rejected.
+        return !!item && (item.type === 'magnet' || item.type === 'http' || item.type === 'torrent' || item.type === 'metalink');
     }
 
     function serialize(list) {

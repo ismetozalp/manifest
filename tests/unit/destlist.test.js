@@ -42,24 +42,27 @@ test('pushRecent: cap === list length after re-adding an existing entry keeps th
     assert.deepEqual(R.pushRecent(['a', 'b', 'c'], 'b', 3), ['b', 'a', 'c']);
 });
 
-test('pushRecent: cap of 0 is falsy, so per Number(cap)||0 the list is NOT capped (cap>0 is false)', () => {
-    // NOTE: this may be a surprising edge case — a caller passing cap=0 probably
-    // expects zero items kept, but `cap > 0 ? slice(...) : next` treats 0 like
-    // "no cap requested" and returns the full uncapped list. Asserting actual behavior.
-    assert.deepEqual(R.pushRecent(['a', 'b'], 'c', 0), ['c', 'a', 'b']);
+test('pushRecent: an explicit cap of 0 caps to an empty list', () => {
+    assert.deepEqual(R.pushRecent(['a', 'b'], 'c', 0), []);
 });
 
 test('pushRecent: non-numeric cap coerces to 0 via Number(cap)||0 → uncapped, same as cap=0', () => {
     assert.deepEqual(R.pushRecent(['a', 'b'], 'c', 'not-a-number'), ['c', 'a', 'b']);
 });
 
-test('pushRecent: negative cap is truthy (not 0/NaN) but still fails the cap>0 check → uncapped', () => {
-    assert.deepEqual(R.pushRecent(['a', 'b'], 'c', -1), ['c', 'a', 'b']);
+test('pushRecent: a negative cap likewise yields an empty list', () => {
+    assert.deepEqual(R.pushRecent(['a', 'b'], 'c', -1), []);
 });
 
-test('pushRecent: null/undefined path is pushed like any other value and dedupes against itself', () => {
-    assert.deepEqual(R.pushRecent(['a', null, 'b'], null, 5), [null, 'a', 'b']);
-    assert.deepEqual(R.pushRecent(['a', 'b'], undefined, 5), [undefined, 'a', 'b']);
+test('pushRecent: an absent/NaN cap applies no capping', () => {
+    assert.deepEqual(R.pushRecent(['a', 'b'], 'c', undefined), ['c', 'a', 'b']);
+    assert.deepEqual(R.pushRecent(['a', 'b'], 'c', NaN), ['c', 'a', 'b']);
+});
+
+test('pushRecent: a null/undefined/empty path is not recorded (existing dupes still removed)', () => {
+    assert.deepEqual(R.pushRecent(['a', null, 'b'], null, 5), ['a', 'b']);
+    assert.deepEqual(R.pushRecent(['a', 'b'], undefined, 5), ['a', 'b']);
+    assert.deepEqual(R.pushRecent(['a', 'b'], '', 5), ['a', 'b']);
 });
 
 test('pushRecent: non-array list is treated as empty', () => {

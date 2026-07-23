@@ -24,6 +24,7 @@
             text: '',
             dir: '',
             paused: false,
+            chooseFiles: false, // route a single magnet/torrent to Configure's file tree
             error: '',
             dragOver: false,
             torrentFiles: [],   // [{name,size,b64,gid,entries,expanded,loading,error}]
@@ -175,6 +176,31 @@
                     return;
                 }
             }
+            // "Choose files first": route a SINGLE magnet or .torrent through the
+            // Configure dialog (metadata fetch → checkbox tree) instead of starting
+            // it immediately. Only applies to one torrent-type source on its own;
+            // mixed/multiple sources fall through to the normal add below.
+            if (this.quickAdd.chooseFiles) {
+                const magnets = items.filter((i) => i.type === 'magnet');
+                const others = items.filter((i) => i.type !== 'magnet');
+                const tfs = this.quickAdd.torrentFiles;
+                if (!others.length && ((magnets.length === 1 && !tfs.length) || (!magnets.length && tfs.length === 1))) {
+                    const dir = this.quickAdd.dir;
+                    let item;
+                    if (magnets.length === 1) {
+                        item = { id: 'qa-' + Date.now(), type: 'magnet', value: magnets[0].value, raw: magnets[0].raw };
+                    } else {
+                        const tf = tfs[0];
+                        if (tf.error || !tf.b64) { this.quickAdd.error = tf.name + ': not ready yet.'; return; }
+                        item = { id: 'qa-' + Date.now(), type: 'torrent', value: tf.name, b64: tf.b64, raw: tf.name };
+                    }
+                    for (const t of tfs) await this._qaDiscardPeek(t); // drop any paused peek probe
+                    bootstrap.Modal.getOrCreateInstance(this.quickAddModalEl).hide();
+                    this.configureItemNow(item, dir);
+                    return;
+                }
+            }
+
             const opts = { dir: this.quickAdd.dir, pause: this.quickAdd.paused ? 'true' : 'false' };
             const errors = [];
 

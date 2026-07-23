@@ -90,6 +90,10 @@
                     <input class="form-check-input" type="checkbox" id="qaPaused" x-model="quickAdd.paused">
                     <label class="form-check-label" for="qaPaused">Add paused</label>
                 </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="qaChooseFiles" x-model="quickAdd.chooseFiles">
+                    <label class="form-check-label" for="qaChooseFiles">Choose files first (a single magnet/torrent) — fetches its file list so you can pick which files to download</label>
+                </div>
 
                 <div class="alert alert-danger py-1 px-2 mt-2" style="white-space:pre-wrap;" x-show="quickAdd.error" x-text="quickAdd.error"></div>
             </div>

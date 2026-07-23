@@ -35,11 +35,25 @@
             return !!item && (item.type === 'magnet' || item.type === 'torrent');
         },
 
+        // Open Configure directly for a single magnet/torrent handed over from
+        // Quick Add (destination already chosen there): show the dialog and
+        // immediately kick off metadata resolution → the file tree.
+        configureItemNow(item, dir) {
+            this.queue.configuring = {
+                item, dir: dir || this.home || '/', stage: 'destination',
+                gid: null, files: [], fileTree: [], selectedIndices: new Set(), collapsed: new Set(),
+                error: '', busy: false, _pollTimer: null, _startedAt: 0,
+            };
+            bootstrap.Modal.getOrCreateInstance(this.configureModalEl).show();
+            this.$nextTick(() => this.cfgStart());
+        },
+
         startItem(item) {
             const dest = (this.settings && this.settings.destinations && this.settings.destinations.default) || this.home || '/';
             this.queue.configuring = {
                 item, dir: dest, stage: 'destination',
-                gid: null, files: [], error: '', busy: false,
+                gid: null, files: [], fileTree: [], selectedIndices: new Set(), collapsed: new Set(),
+                error: '', busy: false,
                 _pollTimer: null, _startedAt: 0,
             };
             bootstrap.Modal.getOrCreateInstance(this.configureModalEl).show();
@@ -93,8 +107,12 @@
             this._cfgPollMetadata();
         },
 
-        // Polls tellStatus (totalLength>0 == metadata resolved) then
-        // getFiles, until files arrive or FETCH_METADATA_TIMEOUT_MS elapses.
+        // Polls getFiles until the real file list is available, then builds the
+        // tree. NB: a *paused* torrent reports totalLength=0 even though its
+        // metadata (file list) is already known, so we can't key off size — we
+        // key off the file list itself. A magnet still fetching metadata exposes
+        // a single "[METADATA]…" pseudo-file; a resolved magnet or any torrent
+        // lists its actual files. Times out after FETCH_METADATA_TIMEOUT_MS.
         async _cfgPollMetadata() {
             const cfg = this.queue.configuring;
             if (!cfg || cfg.stage !== 'resolving' || !cfg.gid) return;
@@ -104,10 +122,13 @@
                 return;
             }
             try {
-                const status = await this.rpc.tellStatus(cfg.gid, ['totalLength', 'status']);
-                if (Number(status && status.totalLength) > 0) {
-                    const files = await this.rpc.getFiles(cfg.gid);
-                    cfg.files = (files || []).map((f, i) => ({ index: i + 1, path: f.path, length: f.length, selected: true }));
+                const files = await this.rpc.getFiles(cfg.gid);
+                const ready = (files || []).length > 0 && files[0].path && files[0].path.indexOf('[METADATA]') !== 0;
+                if (ready) {
+                    cfg.files = files.map((f, i) => ({ index: Number(f.index) || (i + 1), path: f.path, length: Number(f.length) || 0, selected: true }));
+                    cfg.fileTree = ManifestFileTree.build(files).nodes;
+                    cfg.selectedIndices = new Set(cfg.files.map((f) => f.index)); // all selected by default
+                    cfg.collapsed = new Set();
                     cfg.stage = 'files';
                     return;
                 }
@@ -124,10 +145,54 @@
             this._cfgPollMetadata();
         },
 
-        cfgSelectAll(sel) {
+        // ── Add-time file selection as a checkbox tree (same shape as the
+        // detail Files tab; here the choice is applied on Start, not live). ──
+        get cfgTreeRows() {
             const cfg = this.queue.configuring;
-            if (!cfg) return;
-            cfg.files.forEach((f) => { f.selected = !!sel; });
+            if (!cfg) return [];
+            const rows = [];
+            const collapsed = cfg.collapsed || new Set();
+            const walk = (nodes, depth, prefix) => {
+                for (const n of nodes) {
+                    const key = prefix + '/' + n.name;
+                    const isCollapsed = n.dir && collapsed.has(key);
+                    rows.push({ node: n, depth, key, collapsed: isCollapsed });
+                    if (n.dir && !isCollapsed) walk(n.children, depth + 1, key);
+                }
+            };
+            walk(cfg.fileTree || [], 0, '');
+            return rows;
+        },
+        cfgToggleFolder(key) {
+            const cfg = this.queue.configuring; if (!cfg) return;
+            const c = new Set(cfg.collapsed || []);
+            if (c.has(key)) c.delete(key); else c.add(key);
+            cfg.collapsed = c;
+        },
+        cfgFolderState(node) {
+            const cfg = this.queue.configuring;
+            return ManifestFileTree.folderState(node, (cfg && cfg.selectedIndices) || new Set());
+        },
+        cfgFileChecked(node) {
+            const cfg = this.queue.configuring;
+            return ((cfg && cfg.selectedIndices) || new Set()).has(node.index);
+        },
+        cfgToggleTreeFile(node) {
+            const cfg = this.queue.configuring; if (!cfg) return;
+            const s = new Set(cfg.selectedIndices || []);
+            if (s.has(node.index)) s.delete(node.index); else s.add(node.index);
+            cfg.selectedIndices = s;
+        },
+        cfgToggleTreeFolder(node) {
+            const cfg = this.queue.configuring; if (!cfg) return;
+            const s = new Set(cfg.selectedIndices || []);
+            if (ManifestFileTree.folderState(node, s) === 'all') node.indices.forEach((i) => s.delete(i));
+            else node.indices.forEach((i) => s.add(i));
+            cfg.selectedIndices = s;
+        },
+        cfgSelectAll(sel) {
+            const cfg = this.queue.configuring; if (!cfg) return;
+            cfg.selectedIndices = new Set(sel ? ManifestFileTree.allIndices(cfg.fileTree || []) : []);
         },
 
         // File selection confirmed -> apply select-file (only if a strict
@@ -135,13 +200,14 @@
         async cfgConfirmFiles() {
             const cfg = this.queue.configuring;
             if (!cfg || cfg.stage !== 'files' || cfg.busy) return;
-            const selected = new Set(cfg.files.filter((f) => f.selected).map((f) => f.index));
+            const selected = cfg.selectedIndices || new Set();
+            const total = ManifestFileTree.allIndices(cfg.fileTree || []).length || cfg.files.length;
             if (!selected.size) { cfg.error = 'Select at least one file.'; return; }
             cfg.error = '';
             cfg.busy = true;
             try {
-                if (selected.size < cfg.files.length) {
-                    await this.rpc.changeOption(cfg.gid, { 'select-file': Util.selectFileCsv(selected, cfg.files.length) });
+                if (selected.size < total) {
+                    await this.rpc.changeOption(cfg.gid, { 'select-file': Util.selectFileCsv(selected, total) });
                 }
                 await this.rpc.unpause(cfg.gid);
                 this._cfgFinish();

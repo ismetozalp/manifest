@@ -1,7 +1,7 @@
 # Manifest
 
 A Cockpit plugin that turnkey-provisions and drives a per-user `aria2c` daemon,
-giving the server one unified download station for torrents, magnets, and
+giving the server one unified download manager for torrents, magnets, and
 HTTP/FTP/Metalink files, all inside the Cockpit console. Pure HTML/CSS/JS,
 **no build step**, no server daemon of its own.
 
@@ -15,7 +15,7 @@ HTTP/FTP/Metalink files, all inside the Cockpit console. Pure HTML/CSS/JS,
 > **📺 And:** [**InFlight TV**](https://github.com/ismetozalp/iftv) (`ismetozalp/iftv`) —
 > an IPTV / live-TV player for the Cockpit console.
 
-![Manifest — unified download station](screenshots/downloads.png)
+![Manifest — unified download manager](screenshots/downloads.png)
 
 ## What it does
 
@@ -56,7 +56,7 @@ plugin-internal sidebar; Cockpit's own left nav is the only one.
 > Mockups with placeholder data — generic paths (`/mnt/media/…`) and
 > open-content names (Ubuntu/Debian ISOs, Blender open movies). Not real content.
 
-**Unified download station** — one full-width table for torrents, magnets, and
+**Unified download manager** — one full-width table for torrents, magnets, and
 HTTP/FTP; live progress (percent on the bar), ↓/↑ speeds, ETA, and per-row actions.
 
 ![Download station](screenshots/downloads.png)

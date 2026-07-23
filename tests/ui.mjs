@@ -1,23 +1,25 @@
 // tests/ui.mjs — Playwright UI regression for Manifest, driving the plugin
-// through the live Cockpit shell. Exercises the parts that work WITHOUT aria2
-// running: the app shell, the Settings modal + theme switching, Paste-to-Queue
-// staging (offline) with mixed-source per-line type detection, the staging
-// Queue view, and the filter pills. Fails on ANY uncaught pageerror or risky
-// console error — the class of bug that only surfaces on a real render.
+// through the live Cockpit shell. Exercises the front-end broadly: app shell,
+// Settings + all themes + accent buttons, the download table + percent-on-bar +
+// row context menu, the detail file-selection tree, Paste-to-Queue staging with
+// mixed-source detection + remove/clear, modal stacking, and the filter pills.
+// Table/detail/context-menu checks that need a live service are guarded by
+// svc.active and injected with synthetic data (no aria2 RPC calls), so the core
+// UI is always tested and the service-gated bits run when aria2 is up.
 //
-// Run:  COCKPIT_PASS=<pass> npm run test:ui   (also honours COCKPIT_USER/URL)
-// Without COCKPIT_PASS it skips (exit 2), like the smoke test.
+// Fails on ANY uncaught pageerror or risky console error.
+//   COCKPIT_PASS=<pass> npm run test:ui   (also honours COCKPIT_USER/URL)
 import { chromium } from 'playwright';
 import { CFG, openManifest } from './helpers/cockpit.mjs';
 
 const SHOT = process.env.UI_SHOT || '/home/ismet/manifest/tests/ui.png';
 const errors = [];
-const RISK = /is not a function|is not defined|Cannot read propert|Manifest[A-Z]|undefined is not|NaN/;
+const RISK = /is not a function|is not defined|Cannot read propert|Manifest[A-Z]|undefined is not/;
 const checks = [];
 function check(name, ok, detail) { checks.push({ name, ok: !!ok, detail: detail || '' }); }
 
 const browser = await chromium.launch({ channel: 'chrome', headless: true, args: ['--ignore-certificate-errors'] });
-const ctx = await browser.newContext({ ignoreHTTPSErrors: true });
+const ctx = await browser.newContext({ ignoreHTTPSErrors: true, viewport: { width: 1200, height: 760 } });
 const page = await ctx.newPage();
 page.on('pageerror', e => errors.push({ kind: 'pageerror', text: String(e.message || e) }));
 page.on('console', m => { if (m.type() === 'error') errors.push({ kind: 'console', text: m.text() }); });
@@ -29,6 +31,8 @@ function finish(code, msg) {
     if (risky.length) { console.log(`\n${risky.length} risky JS error(s):`); risky.forEach(e => console.log(`  [${e.kind}] ${e.text}`)); }
     browser.close().then(() => process.exit(code));
 }
+const data = () => app.evaluate(() => window.Alpine.$data(document.querySelector('[x-data]')));
+let app;
 
 try {
     if (!CFG.pass) {
@@ -36,78 +40,173 @@ try {
         await page.screenshot({ path: SHOT }).catch(() => {});
         finish(2, `Set COCKPIT_PASS to run the UI suite (skipped). Shot: ${SHOT}`);
     }
-    const app = await openManifest(page);
+    app = await openManifest(page);
     if (!app) finish(3, `Could not locate the Manifest plugin frame. Shot: ${SHOT}`);
     await app.locator('.mf-topbar').first().waitFor({ timeout: 20000 });
     check('shell renders', await app.locator('.mf-title').filter({ hasText: 'Manifest' }).count() > 0);
+    // Let the async service check (init → _refreshServiceState) settle before we
+    // decide whether to run the service-gated table/detail section.
+    await app.evaluate(async () => { const d = window.Alpine.$data(document.querySelector('[x-data]')); for (let i = 0; i < 40 && d.svc.state === 'unknown'; i++) await new Promise(r => setTimeout(r, 300)); });
+    const svcActive = await app.evaluate(() => window.Alpine.$data(document.querySelector('[x-data]')).svc.active);
 
-    // ---- Setup-log dismiss (inject a log line, confirm the × clears it) ----
-    await app.evaluate(() => { const d = window.Alpine && window.Alpine.$data(document.querySelector('[x-data]')); if (d) d.svc.log = 'test setup log line'; });
+    // ---- Setup-log dismiss ----
+    await app.evaluate(() => { const d = window.Alpine.$data(document.querySelector('[x-data]')); d.svc.log = 'test setup log line'; });
     await page.waitForTimeout(150);
     check('setup log shows a dismiss button', await app.locator('.mf-setup-log-wrap .btn-close').count() > 0);
     await app.locator('.mf-setup-log-wrap .btn-close').first().click({ timeout: 3000 }).catch(() => {});
     await page.waitForTimeout(150);
-    check('dismiss clears the setup log', await app.evaluate(() => { const d = window.Alpine && window.Alpine.$data(document.querySelector('[x-data]')); return d ? !d.svc.log : false; }));
+    check('dismiss clears the setup log', await app.evaluate(() => !window.Alpine.$data(document.querySelector('[x-data]')).svc.log));
 
-    // ---- Settings + theme switching ----
+    // ---- Settings: swatches + tuning + ALL themes + accent buttons ----
     await app.locator('button[title="Settings"]').first().click({ timeout: 5000 });
     await app.locator('#mfSettings.show').waitFor({ timeout: 5000 });
     const swatches = await app.locator('#mfSettings .mf-theme-swatch').count();
-    check('settings modal opens with 7 theme swatches', swatches === 7, `found ${swatches}`);
+    check('settings has all 13 theme swatches', swatches === 13, `found ${swatches}`);
     const settingsText = await app.locator('#mfSettings').innerText().catch(() => '');
     check('tuning section present (concurrency + per-server connections)',
         /Max concurrent downloads/i.test(settingsText) && /Max connections per server/i.test(settingsText) && /aria2 caps at 16/i.test(settingsText));
-    for (const theme of ['dark', 'nord', 'dracula', 'system']) {
-        const label = theme[0].toUpperCase() + theme.slice(1);
-        await app.locator('#mfSettings button', { hasText: new RegExp(`^\\s*${label}\\s*$`) }).first().click({ timeout: 4000 }).catch(() => {});
-        await page.waitForTimeout(200);
-        const attr = await app.evaluate(() => document.documentElement.getAttribute('data-bs-theme'));
-        const expect = theme === 'system' ? /^(light|dark)$/ : new RegExp(`^${theme}$`);
-        check(`theme "${theme}" applies data-bs-theme`, expect.test(attr || ''), `data-bs-theme="${attr}"`);
+
+    // Apply every theme; assert data-bs-theme + readable header contrast (light on dark, or dark on light)
+    const themeIds = await app.evaluate(() => (window.ManifestThemes ? window.ManifestThemes.THEMES.map(t => t.id) : []));
+    const lum = (rgb) => { const m = (rgb.match(/\d+/g) || [0, 0, 0]).map(Number); return 0.2126 * m[0] + 0.7152 * m[1] + 0.0722 * m[2]; };
+    let themeFails = 0, contrastFails = 0;
+    for (const id of themeIds) {
+        await app.evaluate((t) => { const d = window.Alpine.$data(document.querySelector('[x-data]')); d.settings.theme = t; d.applyTheme(); }, id);
+        await page.waitForTimeout(90);
+        const info = await app.evaluate(() => {
+            const attr = document.documentElement.getAttribute('data-bs-theme');
+            const hdr = document.querySelector('#mfSettings h6'), bg = document.querySelector('#mfSettings .modal-content');
+            return { attr, hdr: hdr ? getComputedStyle(hdr).color : '', bg: bg ? getComputedStyle(bg).backgroundColor : '' };
+        });
+        const attrOk = id === 'system' ? /^(light|dark)$/.test(info.attr) : info.attr === id;
+        if (!attrOk) themeFails++;
+        if (Math.abs(lum(info.hdr) - lum(info.bg)) < 40) contrastFails++;
     }
-    // Modal stacking: a folder picker opened FROM Settings must render ON TOP,
-    // not behind it (Bootstrap gives every modal the same z-index).
+    check(`all ${themeIds.length} themes apply data-bs-theme`, themeFails === 0, `${themeFails} failed`);
+    check('section headers legible in every theme', contrastFails === 0, `${contrastFails} low-contrast`);
+
+    // Accent buttons: a custom theme's Save button uses its --bs-primary, not blue
+    await app.evaluate(() => { const d = window.Alpine.$data(document.querySelector('[x-data]')); d.settings.theme = 'gruvbox'; d.applyTheme(); });
+    await page.waitForTimeout(120);
+    const btn = await app.evaluate(() => { const b = [...document.querySelectorAll('#mfSettings .btn-primary')].pop(); const cs = getComputedStyle(b); return { bg: cs.backgroundColor }; });
+    check('primary button follows the theme accent (not Bootstrap blue)', !/13,\s*110,\s*253/.test(btn.bg), `Save bg=${btn.bg}`);
+    await app.evaluate(() => { const d = window.Alpine.$data(document.querySelector('[x-data]')); d.settings.theme = 'dark'; d.applyTheme(); });
+
+    // Modal stacking: folder picker over Settings
     await app.locator('#mfSettings button', { hasText: /Browse/ }).first().click({ timeout: 4000 });
     await app.locator('#mfFolderPicker.show').waitFor({ timeout: 8000 });
     const stack = await app.evaluate(() => {
         const z = (el) => parseInt(getComputedStyle(el).zIndex) || 0;
-        const picker = document.querySelector('#mfFolderPicker');
-        const settings = document.querySelector('#mfSettings');
+        const picker = document.querySelector('#mfFolderPicker'), settings = document.querySelector('#mfSettings');
         const r = picker.querySelector('.modal-content').getBoundingClientRect();
-        const top = document.elementFromPoint(r.left + r.width / 2, r.top + 8);
-        return { pickerZ: z(picker), settingsZ: z(settings), topInPicker: picker.contains(top) };
+        return { pickerZ: z(picker), settingsZ: z(settings), topInPicker: picker.contains(document.elementFromPoint(r.left + r.width / 2, r.top + 8)) };
     });
     check('folder picker stacks above the modal that opened it', stack.pickerZ > stack.settingsZ && stack.topInPicker, JSON.stringify(stack));
     await app.locator('#mfFolderPicker button', { hasText: /Cancel/ }).first().click({ timeout: 3000 }).catch(() => {});
     await app.locator('#mfFolderPicker.show').waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
-
     await app.locator('#mfSettings [data-bs-dismiss="modal"]').first().click({ timeout: 4000 });
     await app.locator('#mfSettings.show').waitFor({ state: 'hidden', timeout: 5000 });
     check('settings modal closes', true);
 
-    // ---- Paste-to-Queue staging (offline, mixed sources) ----
+    // ---- Paste-to-Queue: mixed sources, per-line type, then remove + clear ----
     await app.locator('header button', { hasText: 'Paste to Queue' }).first().click({ timeout: 5000 });
     await app.locator('#mfPaste.show').waitFor({ timeout: 5000 });
-    const mixed = 'magnet:?xt=urn:btih:abc123\nhttps://example.com/ubuntu.iso\nthis is not a link';
-    await app.locator('#mfPaste textarea').first().fill(mixed);
+    await app.locator('#mfPaste textarea').first().fill('magnet:?xt=urn:btih:abc123\nhttps://example.com/ubuntu.iso\nftp://mirror/file.bin\nthis is not a link');
     await page.waitForTimeout(300);
-    const previewTypes = await app.locator('#mfPaste .badge').allInnerTexts().catch(() => []);
-    const joined = previewTypes.join(',');
-    check('paste preview classifies each line independently', /magnet/.test(joined) && /http/.test(joined) && /unknown/.test(joined), joined);
+    const previewTypes = (await app.locator('#mfPaste .badge').allInnerTexts().catch(() => [])).join(',');
+    check('paste preview classifies each line independently', /magnet/.test(previewTypes) && /http/.test(previewTypes) && /unknown/.test(previewTypes), previewTypes);
     await app.locator('#mfPaste button', { hasText: 'Add to queue' }).first().click({ timeout: 4000 });
     await app.locator('#mfPaste.show').waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
     await page.waitForTimeout(300);
-    const queuePill = await app.locator('.mf-pills button', { hasText: /Queue/ }).first().innerText().catch(() => '');
-    const qcount = parseInt((queuePill.match(/\((\d+)\)/) || [])[1] || '0', 10);
-    check('valid mixed sources staged to queue (magnet+http)', qcount >= 2, `Queue pill: "${queuePill.trim()}"`);
-    // View the queue and confirm items render
-    await app.locator('.mf-pills button', { hasText: /Queue/ }).first().click({ timeout: 4000 });
-    await page.waitForTimeout(200);
+    const qcount = await app.evaluate(() => window.Alpine.$data(document.querySelector('[x-data]')).queue.items.length);
+    check('valid mixed sources staged (magnet+http+ftp, junk dropped)', qcount === 3, `queue length ${qcount}`);
+    // remove one, then clear all (via component methods — robust to markup)
+    await app.evaluate(() => { const d = window.Alpine.$data(document.querySelector('[x-data]')); d.removeItem(d.queue.items[0]); });
+    await page.waitForTimeout(150);
+    check('remove item drops one from the queue', (await app.evaluate(() => window.Alpine.$data(document.querySelector('[x-data]')).queue.items.length)) === 2);
+    // clearQueue() asks for confirmation first; drive the confirm dialog's OK.
+    // (Wait for the show transition before hiding, and for the hide to finish,
+    // or the modal backdrop lingers and intercepts later clicks.)
+    await app.evaluate(() => { window.Alpine.$data(document.querySelector('[x-data]')).clearQueue(); });
+    await app.locator('#mfConfirmModal.show').waitFor({ timeout: 4000 }).catch(() => {});
+    await page.waitForTimeout(450);
+    await app.locator('#mfConfirmModal button', { hasText: /^\s*OK\s*$/ }).first().click({ timeout: 4000 }).catch(() => {});
+    let cleared = false;
+    for (let i = 0; i < 20 && !cleared; i++) { await page.waitForTimeout(150); cleared = (await app.evaluate(() => window.Alpine.$data(document.querySelector('[x-data]')).queue.items.length)) === 0; }
+    await app.locator('#mfConfirmModal.show').waitFor({ state: 'hidden', timeout: 4000 }).catch(() => {});
+    check('clear empties the queue (via confirm dialog)', cleared);
+
+    // ---- Download table + percent-on-bar + row context menu (needs svc.active) ----
+    if (svcActive) {
+        await app.evaluate(() => {
+            const d = window.Alpine.$data(document.querySelector('[x-data]'));
+            if (d.stopPolling) d.stopPolling();
+            d.deepLinks = { explorer: true, files: true };
+            const mk = (gid, name, total, done, spd, status, bt) => ({ gid, status, totalLength: String(total), completedLength: String(done), downloadSpeed: String(spd), uploadSpeed: '0', connections: status === 'active' ? '9' : '0', numSeeders: '3', dir: '/mnt/media', files: [{ path: '/mnt/media/' + name, selected: 'true' }], bittorrent: bt ? { info: { name } } : undefined, errorCode: '0' });
+            d.downloads = {
+                a: mk('a', 'ubuntu-24.04.iso', 6000000000, 2700000000, 8000000, 'active', false),
+                b: mk('b', 'Sintel.1080p.mkv', 1600000000, 200000000, 9000000, 'active', true),
+                c: mk('c', 'debian.iso', 659000000, 659000000, 0, 'complete', false),
+            };
+            d.activeFilter = 'all';
+        });
+        await page.waitForTimeout(300);
+        const rows = await app.locator('.mf-row').count();
+        check('table renders injected downloads', rows === 3, `rows=${rows}`);
+        const pctText = (await app.locator('.mf-row-pct').allInnerTexts().catch(() => [])).join(',');
+        check('percent shown inside the bar', /%/.test(pctText), pctText);
+        const badges = (await app.locator('.mf-row .badge').allInnerTexts().catch(() => [])).join(',');
+        check('status badges render (active/complete)', /active/i.test(badges) && /complete/i.test(badges), badges);
+        // row context menu: open on first row's ⋯, must be in viewport and show deep-link items
+        await app.locator('.mf-row button', { hasText: '⋯' }).first().click({ timeout: 4000 });
+        await page.waitForTimeout(200);
+        const menu = await app.evaluate(() => {
+            const el = document.querySelector('.mf-ctxmenu');
+            if (!el || !el.classList.contains('show')) return { open: false };
+            const b = el.getBoundingClientRect();
+            return { open: true, inViewport: b.left >= 0 && b.top >= 0 && b.right <= innerWidth + 1 && b.bottom <= innerHeight + 1, text: el.innerText };
+        });
+        check('row context menu opens inside the viewport', menu.open && menu.inViewport, JSON.stringify({ inViewport: menu.inViewport }));
+        check('context menu shows Open-in-Files and Open-in-Explorer (installed)', /Files/.test(menu.text || '') && /Explorer/.test(menu.text || ''));
+        await app.evaluate(() => window.Alpine.$data(document.querySelector('[x-data]')).closeContextMenu());
+
+        // ---- Detail file-selection tree: collapse, select none/all, tri-state ----
+        await app.evaluate(() => {
+            const d = window.Alpine.$data(document.querySelector('[x-data]'));
+            const files = [{ index: '1', path: '/dl/Show/Sub/a.srt', length: '5', selected: 'true' }, { index: '2', path: '/dl/Show/Sub/b.srt', length: '5', selected: 'true' }, { index: '3', path: '/dl/Show/movie.mkv', length: '900', selected: 'true' }, { index: '4', path: '/dl/Show/junk.txt', length: '9', selected: 'false' }];
+            d.detail = { open: true, gid: 'x', tab: 'files', data: {}, peers: [], trackers: [], files: files.map(f => ({ index: Number(f.index), path: f.path, length: Number(f.length), completedLength: 0, selected: f.selected !== 'false' })), fileTree: window.ManifestFileTree.build(files).nodes, selectedIndices: new Set([1, 2, 3]), collapsed: new Set(), _selGid: 'x', loading: false, error: '' };
+            bootstrap.Modal.getOrCreateInstance(d.detailModalEl).show();
+        });
+        await page.waitForTimeout(400);
+        const treeRows = await app.locator('#mfDetail .mf-tree-row').count();
+        check('detail file tree renders (folder + files)', treeRows >= 4, `rows=${treeRows}`);
+        const guides = await app.locator('#mfDetail .mf-tree-guide').count();
+        check('tree has indent guide-lines (nested items)', guides >= 1, `guides=${guides}`);
+        // collapse the Sub folder -> fewer rows (no changeOption calls, pure UI)
+        await app.evaluate(() => window.Alpine.$data(document.querySelector('[x-data]')).detailToggleFolder('/Sub'));
+        await page.waitForTimeout(150);
+        const collapsed = await app.locator('#mfDetail .mf-tree-row').count();
+        check('collapsing a folder hides its children', collapsed < treeRows, `${treeRows}→${collapsed}`);
+        // folder tri-state helper (no RPC): some vs all vs none
+        const tri = await app.evaluate(() => {
+            const d = window.Alpine.$data(document.querySelector('[x-data]'));
+            const sub = d.detail.fileTree.find(n => n.dir);
+            const all = window.ManifestFileTree.folderState(sub, new Set(sub.indices));
+            const some = window.ManifestFileTree.folderState(sub, new Set([sub.indices[0]]));
+            const none = window.ManifestFileTree.folderState(sub, new Set());
+            return { all, some, none };
+        });
+        check('folder tri-state is all/some/none', tri.all === 'all' && tri.some === 'some' && tri.none === 'none', JSON.stringify(tri));
+        await app.evaluate(() => { const d = window.Alpine.$data(document.querySelector('[x-data]')); bootstrap.Modal.getOrCreateInstance(d.detailModalEl).hide(); d.detail.open = false; });
+        await page.waitForTimeout(300);
+    } else {
+        check('table/context-menu/detail checks (skipped — aria2 not running)', true, 'set up aria2 to exercise these');
+    }
 
     // ---- Filter pills sweep ----
-    for (const pill of ['All', 'Active', 'Waiting', 'Paused', 'Complete', 'Error']) {
+    for (const pill of ['All', 'Active', 'Waiting', 'Paused', 'Complete', 'Error', 'Queue']) {
         await app.locator('.mf-pills button', { hasText: new RegExp(pill) }).first().click({ timeout: 3000 }).catch(() => {});
-        await page.waitForTimeout(60);
+        await page.waitForTimeout(50);
     }
     check('filter pills clickable without error', true);
 

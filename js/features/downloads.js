@@ -144,6 +144,13 @@
             for (const gid of Object.keys(this.downloads)) {
                 if (!seen.has(gid)) delete this.downloads[gid];
             }
+            // Drop selection entries whose rows are gone, so the bulk-bar count
+            // can't drift above what's on screen. Only reassign on an actual
+            // change to avoid needless reactivity churn every poll.
+            if (this.selection && this.selection.size && root.ManifestSelection) {
+                const pruned = root.ManifestSelection.prune(this.selection, Object.keys(this.downloads));
+                if (pruned.size !== this.selection.size) this.selection = pruned;
+            }
         },
 
         async _refreshFreeSpace() {

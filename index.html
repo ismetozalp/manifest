@@ -69,6 +69,20 @@
     </template>
 </nav>
 
+<!-- BULK-ACTION BAR: appears when one or more rows are checkbox-selected. The
+     same operations aria2 supports per-row are applied across the selection. -->
+<div class="mf-bulkbar d-flex align-items-center flex-wrap gap-2 px-3 py-2" x-cloak
+     x-show="svc.active && activeFilter !== 'queue' && selectedRows.length > 0">
+    <span class="fw-medium" x-text="selectedRows.length + ' selected'"></span>
+    <div class="vr mx-1"></div>
+    <button class="btn btn-sm btn-outline-secondary" @click="bulkResume()">Resume</button>
+    <button class="btn btn-sm btn-outline-secondary" @click="bulkPause()">Pause</button>
+    <button class="btn btn-sm btn-outline-secondary" @click="bulkRetry()">Retry</button>
+    <button class="btn btn-sm btn-outline-danger" @click="bulkRemove()">Remove</button>
+    <button class="btn btn-sm btn-outline-danger" @click="bulkRemoveAndDelete()">Remove &amp; delete files</button>
+    <button class="btn btn-sm btn-link ms-auto text-decoration-none" @click="clearSelection()">Clear</button>
+</div>
+
 <!-- QUEUE VIEW (staging queue — its own filter pill). Works even with aria2
      offline: staging is pure local persistence (queue.json), no RPC. -->
 <section class="mf-queue px-3" x-show="activeFilter === 'queue'">
@@ -102,17 +116,24 @@
             <col :style="'width:' + colWidths[2] + '%'"><col :style="'width:' + colWidths[3] + '%'">
             <col :style="'width:' + colWidths[4] + '%'"><col :style="'width:' + colWidths[5] + '%'">
             <col :style="'width:' + colWidths[6] + '%'"><col :style="'width:' + colWidths[7] + '%'">
-            <col :style="'width:' + colWidths[8] + '%'">
+            <col :style="'width:' + colWidths[8] + '%'"><col :style="'width:' + colWidths[9] + '%'">
         </colgroup>
         <thead><tr>
-            <th><span class="mf-col-grip" title="Drag to resize" @mousedown="startColResize($event, 0)"></span></th>
-            <th @click="sortBy('name')">Name<span class="mf-col-grip" title="Drag to resize" @mousedown="startColResize($event, 1)"></span></th>
-            <th @click="sortBy('size')">Size<span class="mf-col-grip" title="Drag to resize" @mousedown="startColResize($event, 2)"></span></th>
-            <th>Progress<span class="mf-col-grip" title="Drag to resize" @mousedown="startColResize($event, 3)"></span></th>
-            <th>↓<span class="mf-col-grip" title="Drag to resize" @mousedown="startColResize($event, 4)"></span></th>
-            <th>↑<span class="mf-col-grip" title="Drag to resize" @mousedown="startColResize($event, 5)"></span></th>
-            <th>ETA<span class="mf-col-grip" title="Drag to resize" @mousedown="startColResize($event, 6)"></span></th>
-            <th>Status<span class="mf-col-grip" title="Drag to resize" @mousedown="startColResize($event, 7)"></span></th>
+            <th class="mf-th-check">
+                <input type="checkbox" class="form-check-input mf-check" title="Select all"
+                       :checked="allVisibleSelected"
+                       x-effect="$el.indeterminate = anyVisibleSelected && !allVisibleSelected"
+                       @click="toggleSelectAll()">
+                <span class="mf-col-grip" title="Drag to resize" @mousedown="startColResize($event, 0)"></span>
+            </th>
+            <th><span class="mf-col-grip" title="Drag to resize" @mousedown="startColResize($event, 1)"></span></th>
+            <th @click="sortBy('name')">Name<span class="mf-col-grip" title="Drag to resize" @mousedown="startColResize($event, 2)"></span></th>
+            <th @click="sortBy('size')">Size<span class="mf-col-grip" title="Drag to resize" @mousedown="startColResize($event, 3)"></span></th>
+            <th>Progress<span class="mf-col-grip" title="Drag to resize" @mousedown="startColResize($event, 4)"></span></th>
+            <th>↓<span class="mf-col-grip" title="Drag to resize" @mousedown="startColResize($event, 5)"></span></th>
+            <th>↑<span class="mf-col-grip" title="Drag to resize" @mousedown="startColResize($event, 6)"></span></th>
+            <th>ETA<span class="mf-col-grip" title="Drag to resize" @mousedown="startColResize($event, 7)"></span></th>
+            <th>Status<span class="mf-col-grip" title="Drag to resize" @mousedown="startColResize($event, 8)"></span></th>
             <th></th>
         </tr></thead>
         <tbody>
@@ -120,6 +141,10 @@
                 <tr class="mf-row" :class="{'mf-row-selected': selection && selection.has(d.gid)}"
                     @click="selectRow && selectRow($event, d)"
                     @contextmenu.prevent="openRowMenu && openRowMenu($event, d)">
+                    <td class="mf-row-check" @click.stop>
+                        <input type="checkbox" class="form-check-input mf-check"
+                               :checked="selection.has(d.gid)" @click.stop="toggleSelect(d)">
+                    </td>
                     <td class="mf-row-type" x-text="rowType(d)"></td>
                     <td class="mf-row-name" :title="rowName(d)" x-text="rowName(d)"></td>
                     <td x-text="ManifestUtil.humanSize(d.totalLength)"></td>
@@ -150,7 +175,7 @@
                     </td>
                 </tr>
             </template>
-            <tr x-show="!visibleDownloads.length"><td colspan="9" class="text-body-secondary py-4 text-center">No downloads. Use Quick Add or Paste to Queue.</td></tr>
+            <tr x-show="!visibleDownloads.length"><td colspan="10" class="text-body-secondary py-4 text-center">No downloads. Use Quick Add or Paste to Queue.</td></tr>
         </tbody>
     </table>
 </main>
@@ -203,6 +228,7 @@
 <script src="js/core/portpick.js"></script>
 <script src="js/core/installcmd.js"></script>
 <script src="js/core/columns.js"></script>
+<script src="js/core/selection.js"></script>
 <script src="js/core/defaults.js"></script>
 <script src="js/js-yaml.min.js"></script>
 <script src="js/fs.js"></script>

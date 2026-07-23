@@ -162,18 +162,22 @@ try {
         const layout = await app.evaluate(() => getComputedStyle(document.querySelector('.mf-table')).tableLayout);
         check('download table uses fixed layout (anti-shake)', layout === 'fixed', `table-layout=${layout}`);
         const grips = await app.locator('.mf-table thead .mf-col-grip').count();
-        check('every column boundary has a resize grip', grips === 8, `grips=${grips}`);
+        check('every column boundary has a resize grip', grips === 9, `grips=${grips}`);
         // No-shake proof: widen a speed value ("9 MiB/s" → "999.9 MiB/s") and assert
         // the Size header does not move — with fixed layout, content can't shift columns.
-        const sizeXBefore = await app.evaluate(() => document.querySelectorAll('.mf-table thead th')[2].getBoundingClientRect().x);
+        const sizeXBefore = await app.evaluate(() => document.querySelectorAll('.mf-table thead th')[3].getBoundingClientRect().x);
         await app.evaluate(() => { const d = window.Alpine.$data(document.querySelector('[x-data]')); d.downloads.b.downloadSpeed = '1048471142'; });
         await page.waitForTimeout(200);
-        const sizeXAfter = await app.evaluate(() => document.querySelectorAll('.mf-table thead th')[2].getBoundingClientRect().x);
+        const sizeXAfter = await app.evaluate(() => document.querySelectorAll('.mf-table thead th')[3].getBoundingClientRect().x);
         check('columns hold position when a speed value changes width (no row-shake)', Math.abs(sizeXBefore - sizeXAfter) < 1, `Δx=${(sizeXAfter - sizeXBefore).toFixed(2)}`);
-        // Drag the grip between Name(1) and Size(2): Name should widen, Size shrink, and persist.
+        // Drag the grip between Name(col 2) and Size(col 3): Name widens, Size shrinks, persists.
+        // Reset to known widths first so the test is hermetic (a prior run may have
+        // persisted a layout with Size already at the min, leaving no room to shrink).
+        await app.evaluate(() => { const d = window.Alpine.$data(document.querySelector('[x-data]')); d.settings.columns.widths = window.ManifestColumns.DEFAULT_WIDTHS.slice(); });
+        await page.waitForTimeout(80);
         const before = await app.evaluate(() => window.Alpine.$data(document.querySelector('[x-data]')).colWidths.slice());
         await app.evaluate(() => {
-            const grip = document.querySelectorAll('.mf-table thead .mf-col-grip')[1]; // boundary index 1
+            const grip = document.querySelectorAll('.mf-table thead .mf-col-grip')[2]; // boundary index 2 (Name|Size)
             const r = grip.getBoundingClientRect();
             const x0 = r.left + r.width / 2, y = r.top + r.height / 2;
             const opts = (x) => ({ bubbles: true, cancelable: true, clientX: x, clientY: y });
@@ -184,10 +188,49 @@ try {
         await page.waitForTimeout(150);
         const after = await app.evaluate(() => window.Alpine.$data(document.querySelector('[x-data]')).colWidths.slice());
         check('dragging a grip resizes columns (Name grows, Size shrinks, total preserved)',
-            after[1] > before[1] && after[2] < before[2] && Math.abs((after[1] + after[2]) - (before[1] + before[2])) < 0.5,
-            `${JSON.stringify(before.slice(1, 3))} → ${JSON.stringify(after.slice(1, 3))}`);
+            after[2] > before[2] && after[3] < before[3] && Math.abs((after[2] + after[3]) - (before[2] + before[3])) < 0.5,
+            `${JSON.stringify(before.slice(2, 4))} → ${JSON.stringify(after.slice(2, 4))}`);
         const persisted = await app.evaluate(() => window.Alpine.$data(document.querySelector('[x-data]')).settings.columns.widths.slice());
         check('resized widths land in settings (persisted to settings.yml)', JSON.stringify(persisted) === JSON.stringify(after), JSON.stringify(persisted));
+
+        // ---- Checkbox multi-select + bulk-action bar ----
+        await app.evaluate(() => window.Alpine.$data(document.querySelector('[x-data]')).clearSelection());
+        await page.waitForTimeout(80);
+        const rowChecks = await app.locator('.mf-row .mf-row-check input[type=checkbox]').count();
+        check('every row has a selection checkbox', rowChecks === 3, `checkboxes=${rowChecks}`);
+        check('header has a select-all checkbox', await app.locator('.mf-th-check input[type=checkbox]').count() === 1);
+        // bulk bar hidden with nothing selected
+        check('bulk bar hidden when no rows selected', !(await app.locator('.mf-bulkbar').isVisible().catch(() => false)));
+        // tick one row → selection grows, bulk bar appears with the right count
+        await app.locator('.mf-row .mf-row-check input[type=checkbox]').first().click();
+        await page.waitForTimeout(120);
+        check('ticking a row checkbox selects it', await app.evaluate(() => window.Alpine.$data(document.querySelector('[x-data]')).selection.size) === 1);
+        check('bulk bar appears when a row is selected', await app.locator('.mf-bulkbar').isVisible());
+        const barText = await app.locator('.mf-bulkbar').innerText().catch(() => '');
+        check('bulk bar shows count + Pause/Resume/Retry/Remove actions',
+            /1 selected/.test(barText) && /Pause/.test(barText) && /Resume/.test(barText) && /Retry/.test(barText) && /Remove/.test(barText), barText.replace(/\n/g, ' '));
+        // select-all header checkbox selects every visible row
+        await app.locator('.mf-th-check input[type=checkbox]').click();
+        await page.waitForTimeout(120);
+        check('header select-all selects all visible rows', await app.evaluate(() => window.Alpine.$data(document.querySelector('[x-data]')).selection.size) === 3);
+        // bulk remove: drive it through the confirm dialog, assert the rows go away.
+        // NOTE: no-return block — bulkRemove() awaits the confirm dialog, so returning
+        // its promise to evaluate() would deadlock (OK is clicked on the next line).
+        await app.evaluate(() => { window.Alpine.$data(document.querySelector('[x-data]')).bulkRemove(); });
+        await app.locator('#mfConfirmModal.show').waitFor({ timeout: 4000 }).catch(() => {});
+        await page.waitForTimeout(400);
+        await app.locator('#mfConfirmModal button', { hasText: /^\s*OK\s*$/ }).first().click({ timeout: 4000 }).catch(() => {});
+        let emptied = false;
+        for (let i = 0; i < 20 && !emptied; i++) { await page.waitForTimeout(150); emptied = (await app.evaluate(() => Object.keys(window.Alpine.$data(document.querySelector('[x-data]')).downloads).length)) === 0; }
+        await app.locator('#mfConfirmModal.show').waitFor({ state: 'hidden', timeout: 4000 }).catch(() => {});
+        check('bulk remove (via confirm) clears the selected rows + selection', emptied && (await app.evaluate(() => window.Alpine.$data(document.querySelector('[x-data]')).selection.size)) === 0);
+        // re-inject the three rows so the later detail-tree section still has data
+        await app.evaluate(() => {
+            const d = window.Alpine.$data(document.querySelector('[x-data]'));
+            const mk = (gid, name, total, done, spd, status, bt) => ({ gid, status, totalLength: String(total), completedLength: String(done), downloadSpeed: String(spd), uploadSpeed: '0', connections: status === 'active' ? '9' : '0', numSeeders: '3', dir: '/mnt/media', files: [{ path: '/mnt/media/' + name, selected: 'true' }], bittorrent: bt ? { info: { name } } : undefined, errorCode: '0' });
+            d.downloads = { a: mk('a', 'ubuntu-24.04.iso', 6000000000, 2700000000, 8000000, 'active', false), b: mk('b', 'Sintel.1080p.mkv', 1600000000, 200000000, 9000000, 'active', true), c: mk('c', 'debian.iso', 659000000, 659000000, 0, 'complete', false) };
+        });
+        await page.waitForTimeout(200);
 
         // row context menu: open on first row's ⋯, must be in viewport and show deep-link items
         await app.locator('.mf-row button', { hasText: '⋯' }).first().click({ timeout: 4000 });

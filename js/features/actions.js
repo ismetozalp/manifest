@@ -10,6 +10,7 @@
 'use strict';
 (function (root) {
     const Util = root.ManifestUtil;
+    const Selection = root.ManifestSelection;
 
     const ManifestActions = {
         // ── Context-menu popup state (positioned at the cursor, not a rail) ──
@@ -77,6 +78,50 @@
             this._lastClickedGid = d.gid;
         },
 
+        // ── Checkbox multi-select (independent of row-click selection) ──
+        // Toggle a single row's checkbox.
+        toggleSelect(d) {
+            if (!d || !d.gid) return;
+            this.selection = Selection.toggle(this.selection, d.gid);
+            this._lastClickedGid = d.gid;
+        },
+
+        // gids currently on screen (respects the active filter/sort order).
+        _visibleGids() {
+            return this.visibleDownloads.map((d) => d.gid).filter(Boolean);
+        },
+
+        // Header checkbox state: checked when every visible row is selected,
+        // indeterminate (see index.html x-effect) when only some are.
+        get allVisibleSelected() {
+            return Selection.allSelected(this.selection, this._visibleGids());
+        },
+        get anyVisibleSelected() {
+            return Selection.anySelected(this.selection, this._visibleGids());
+        },
+
+        // Header checkbox: select all visible rows, or clear them if all are
+        // already selected. Only touches the visible set — rows hidden by the
+        // active filter keep their current selection state.
+        toggleSelectAll() {
+            const vis = this._visibleGids();
+            this.selection = this.allVisibleSelected
+                ? Selection.remove(this.selection, vis)
+                : Selection.add(this.selection, vis);
+        },
+
+        clearSelection() {
+            this.selection = new Set();
+        },
+
+        // Selected downloads that still exist (stale gids from removed rows are
+        // dropped). Drives the bulk-action bar count and its actions.
+        get selectedRows() {
+            return Array.from(this.selection)
+                .map((gid) => this.downloads[gid])
+                .filter(Boolean);
+        },
+
         // Rows the current menu/bulk action should apply to: the multi-select
         // if the target is part of it, else just the single right-clicked row.
         _targets(d) {
@@ -90,28 +135,41 @@
         },
 
         // ── Actions ──
-        async pauseDl(d) {
-            this.closeContextMenu();
-            for (const t of this._targets(d)) {
-                try { await this.rpc.pause(t.gid); }
-                catch (e) { this.toast('Pause failed: ' + e.message, 'danger'); }
+        // Run a per-download RPC over a target list, toasting per-row failures
+        // (one bad row never aborts the batch). Shared by row + bulk actions.
+        async _runOnTargets(targets, fn, verb) {
+            for (const t of (targets || [])) {
+                try { await fn(t); }
+                catch (e) { this.toast(verb + ' failed: ' + (e.message || e), 'danger'); }
             }
         },
 
+        async pauseDl(d) {
+            this.closeContextMenu();
+            await this._runOnTargets(this._targets(d), (t) => this.rpc.pause(t.gid), 'Pause');
+        },
         async resumeDl(d) {
             this.closeContextMenu();
-            for (const t of this._targets(d)) {
-                try { await this.rpc.unpause(t.gid); }
-                catch (e) { this.toast('Resume failed: ' + e.message, 'danger'); }
-            }
+            await this._runOnTargets(this._targets(d), (t) => this.rpc.unpause(t.gid), 'Resume');
         },
+
+        // ── Bulk actions (the selection-bar buttons) — operate on selectedRows ──
+        async bulkPause() { await this._runOnTargets(this.selectedRows, (t) => this.rpc.pause(t.gid), 'Pause'); },
+        async bulkResume() { await this._runOnTargets(this.selectedRows, (t) => this.rpc.unpause(t.gid), 'Resume'); },
+        async bulkRetry() { await this._retryTargets(this.selectedRows); },
+        async bulkRemove() { await this._removeTargets(this.selectedRows); },
+        async bulkRemoveAndDelete() { await this._removeAndDeleteTargets(this.selectedRows); },
 
         // Re-adds an errored/stopped download's original URIs as a fresh
         // download, then clears the old (errored) entry out of aria2's
         // stopped-results list so it doesn't linger duplicated in the table.
-        async retryDl(d) {
+        retryDl(d) {
             this.closeContextMenu();
-            for (const t of this._targets(d)) {
+            return this._retryTargets(this._targets(d));
+        },
+
+        async _retryTargets(targets) {
+            for (const t of (targets || [])) {
                 try {
                     const uris = await this._retryUris(t);
                     if (!uris.length) {
@@ -161,10 +219,13 @@
             await this.rpc.removeDownloadResult(t.gid).catch(() => {});
         },
 
-        async removeDl(d) {
+        removeDl(d) {
             this.closeContextMenu();
-            const targets = this._targets(d);
-            if (!targets.length) return;
+            return this._removeTargets(this._targets(d));
+        },
+
+        async _removeTargets(targets) {
+            if (!targets || !targets.length) return;
             const label = targets.length === 1 ? this.rowName(targets[0]) : (targets.length + ' downloads');
             const ok = await this.confirmDialog('Remove download', 'Remove ' + label + '? The download will stop; files already downloaded are kept.');
             if (!ok) return;
@@ -179,10 +240,13 @@
             this.selection = new Set();
         },
 
-        async removeAndDelete(d) {
+        removeAndDelete(d) {
             this.closeContextMenu();
-            const targets = this._targets(d);
-            if (!targets.length) return;
+            return this._removeAndDeleteTargets(this._targets(d));
+        },
+
+        async _removeAndDeleteTargets(targets) {
+            if (!targets || !targets.length) return;
             const label = targets.length === 1 ? this.rowName(targets[0]) : (targets.length + ' downloads');
             const ok = await this.confirmDialog('Remove & delete files', 'Remove ' + label + ' AND permanently delete the downloaded file(s) on disk? This cannot be undone.');
             if (!ok) return;

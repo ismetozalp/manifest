@@ -32,11 +32,13 @@ plugin-internal sidebar; Cockpit's own left nav is the only one.
 
 **Unified download manager** — one full-width table for torrents, magnets, and
 HTTP/FTP; live progress (percent on the bar), ↓/↑ speeds, ETA, and per-row
-actions. **Resizable columns** — drag any column's edge to re-proportion the
-table; widths persist to `settings.yml`. The table uses a fixed layout, so rows
-never shake sideways when a speed value changes width. No plugin-internal
-sidebar: filters are a horizontal pill row; detail, settings, and add flows are
-modals, never a second side rail.
+actions. **Row checkboxes + bulk actions** — tick multiple rows (or the header
+select-all) to Resume, Pause, Retry, Remove, or Remove & delete files across the
+whole selection at once. **Resizable columns** — drag any column's edge to
+re-proportion the table; widths persist to `settings.yml`. The table uses a
+fixed layout, so rows never shake sideways when a speed value changes width. No
+plugin-internal sidebar: filters are a horizontal pill row; detail, settings,
+and add flows are modals, never a second side rail.
 
 ![Unified download manager](screenshots/downloads.png)
 

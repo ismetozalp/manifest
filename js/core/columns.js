@@ -5,18 +5,27 @@
 // shaking left/right when a speed value flips between one and two digits.
 'use strict';
 (function (root) {
-    // type, Name, Size, Progress, ↓, ↑, ETA, Status, actions — sums to 100.
-    const DEFAULT_WIDTHS = [3, 23, 9, 18, 11, 11, 8, 9, 8];
+    // checkbox, type, Name, Size, Progress, ↓, ↑, ETA, Status, actions — sums to 100.
+    const DEFAULT_WIDTHS = [4, 3, 24, 8, 17, 10, 10, 7, 9, 8];
     const COLUMN_COUNT = DEFAULT_WIDTHS.length;
     const MIN_PCT = 3;   // a column can't be dragged narrower than this
 
-    function isValidWidths(w) {
-        return Array.isArray(w) && w.length === COLUMN_COUNT
+    // A plausible widths array: positive finite numbers (any length ≥ 2). Used
+    // by applyResize so the drag math is decoupled from the exact column count.
+    function isNumericWidths(w) {
+        return Array.isArray(w) && w.length >= 2
             && w.every((x) => typeof x === 'number' && isFinite(x) && x > 0);
     }
 
-    // Coerce a loaded widths array to a valid one; fall back to defaults when
-    // the shape is wrong (missing, wrong length, non-numeric, non-positive).
+    // A widths array that matches the CURRENT column layout exactly.
+    function isValidWidths(w) {
+        return isNumericWidths(w) && w.length === COLUMN_COUNT;
+    }
+
+    // Coerce a loaded widths array to the current layout; fall back to defaults
+    // when the shape is wrong (missing, wrong length, non-numeric, non-positive).
+    // A layout saved by an older version with a different column count therefore
+    // resets to defaults rather than rendering a broken table.
     function normalizeWidths(w) {
         return isValidWidths(w) ? w.slice() : DEFAULT_WIDTHS.slice();
     }
@@ -30,7 +39,9 @@
     // side drops below `minPct`. The pair's combined width is preserved exactly,
     // so the table total never drifts. Pure: returns a new array, never mutates.
     function applyResize(widths, i, deltaPct, minPct) {
-        const out = normalizeWidths(widths);
+        // Operate on any valid numeric layout (length-agnostic); only fall back
+        // to defaults when the input isn't a usable widths array at all.
+        const out = isNumericWidths(widths) ? widths.slice() : DEFAULT_WIDTHS.slice();
         const min = (typeof minPct === 'number' && minPct >= 0) ? minPct : MIN_PCT;
         // No boundary to the right of the last column (or a bogus index).
         if (!(i >= 0 && i < out.length - 1)) return out;
@@ -47,7 +58,7 @@
         return out;
     }
 
-    const ManifestColumns = { DEFAULT_WIDTHS, COLUMN_COUNT, MIN_PCT, isValidWidths, normalizeWidths, applyResize };
+    const ManifestColumns = { DEFAULT_WIDTHS, COLUMN_COUNT, MIN_PCT, isNumericWidths, isValidWidths, normalizeWidths, applyResize };
     root.ManifestColumns = ManifestColumns;
     if (typeof module !== 'undefined' && module.exports) module.exports = ManifestColumns;
 })(typeof window !== 'undefined' ? window : globalThis);

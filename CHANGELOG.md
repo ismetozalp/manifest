@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.0.2
+
+### Download table
+- **Row selection checkboxes + bulk actions.** Each row now has a checkbox
+  (with a header select-all/indeterminate checkbox); selecting one or more rows
+  reveals a bulk-action bar. Every operation aria2 supports per-row can be
+  applied across the selection at once: **Resume, Pause, Retry, Remove, and
+  Remove & delete files** (the two destructive ones confirm first, naming the
+  count). A per-row failure is toasted without aborting the rest of the batch.
+- Selection is pruned automatically as rows are removed/purged, so the bar's
+  count never drifts above what's on screen.
+- A checkbox column was added, so the table now has 10 columns. A column-width
+  layout saved by 1.0.1 (9 columns) safely resets to the new defaults on first
+  load rather than rendering misaligned.
+
 ## 1.0.1
 
 ### Download table

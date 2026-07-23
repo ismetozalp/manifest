@@ -3,16 +3,16 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 const C = require('../../js/core/columns.js');
 
-test('DEFAULT_WIDTHS: nine columns that sum to 100', () => {
-    assert.equal(C.DEFAULT_WIDTHS.length, 9);
-    assert.equal(C.COLUMN_COUNT, 9);
+test('DEFAULT_WIDTHS: ten columns (incl. checkbox) that sum to 100', () => {
+    assert.equal(C.DEFAULT_WIDTHS.length, 10);
+    assert.equal(C.COLUMN_COUNT, 10);
     const sum = C.DEFAULT_WIDTHS.reduce((a, b) => a + b, 0);
     assert.equal(sum, 100);
     assert.ok(C.DEFAULT_WIDTHS.every((x) => x >= C.MIN_PCT));
 });
 
-test('normalizeWidths: valid array passes through as a copy', () => {
-    const w = [3, 23, 9, 18, 11, 11, 8, 9, 8];
+test('normalizeWidths: valid array (matching column count) passes through as a copy', () => {
+    const w = [4, 3, 24, 8, 17, 10, 10, 7, 9, 8];
     const out = C.normalizeWidths(w);
     assert.deepEqual(out, w);
     assert.notEqual(out, w); // fresh array, not the same reference
@@ -22,11 +22,12 @@ test('normalizeWidths: bad shapes fall back to defaults', () => {
     assert.deepEqual(C.normalizeWidths(null), C.DEFAULT_WIDTHS);
     assert.deepEqual(C.normalizeWidths(undefined), C.DEFAULT_WIDTHS);
     assert.deepEqual(C.normalizeWidths([1, 2, 3]), C.DEFAULT_WIDTHS);            // wrong length
+    assert.deepEqual(C.normalizeWidths([3, 23, 9, 18, 11, 11, 8, 9, 8]), C.DEFAULT_WIDTHS); // old 9-col layout resets
     assert.deepEqual(C.normalizeWidths('nope'), C.DEFAULT_WIDTHS);              // not an array
-    assert.deepEqual(C.normalizeWidths([3, 23, 9, 18, 11, 11, 8, 9, '8']), C.DEFAULT_WIDTHS); // non-numeric
-    assert.deepEqual(C.normalizeWidths([3, 23, 9, 18, 11, 11, 8, 9, 0]), C.DEFAULT_WIDTHS);   // non-positive
-    assert.deepEqual(C.normalizeWidths([3, 23, 9, 18, 11, 11, 8, 9, NaN]), C.DEFAULT_WIDTHS); // NaN
-    assert.deepEqual(C.normalizeWidths([3, 23, 9, 18, 11, 11, 8, 9, Infinity]), C.DEFAULT_WIDTHS);
+    assert.deepEqual(C.normalizeWidths([4, 3, 24, 8, 17, 10, 10, 7, 9, '8']), C.DEFAULT_WIDTHS); // non-numeric
+    assert.deepEqual(C.normalizeWidths([4, 3, 24, 8, 17, 10, 10, 7, 9, 0]), C.DEFAULT_WIDTHS);   // non-positive
+    assert.deepEqual(C.normalizeWidths([4, 3, 24, 8, 17, 10, 10, 7, 9, NaN]), C.DEFAULT_WIDTHS); // NaN
+    assert.deepEqual(C.normalizeWidths([4, 3, 24, 8, 17, 10, 10, 7, 9, Infinity]), C.DEFAULT_WIDTHS);
 });
 
 test('applyResize: positive delta grows col i, shrinks col i+1, pair sum preserved', () => {

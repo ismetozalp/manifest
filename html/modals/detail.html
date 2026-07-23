@@ -9,12 +9,15 @@
 <div id="mfDetail" class="modal fade" tabindex="-1" x-data
      x-init="detailModalEl = $el; $el.addEventListener('hidden.bs.modal', () => { detail.open = false; _detailStopPoll(); })">
     <div class="modal-dialog modal-dialog-centered modal-xl">
-        <div class="modal-content">
+        <!-- Fixed-height dialog with a scrolling body: the ~1.5s live poll and
+             tab switches change the content, but the modal itself never resizes
+             or re-centers (the "modal keeps changing size" fix). -->
+        <div class="modal-content" style="height: min(82vh, 40rem);">
             <div class="modal-header">
                 <h5 class="modal-title text-truncate" x-text="detailName()"></h5>
                 <button type="button" class="btn-close" @click="closeDetail()"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body" style="overflow-y: auto;">
                 <!-- horizontal tab strip -->
                 <ul class="nav nav-tabs">
                     <li class="nav-item">
@@ -35,6 +38,10 @@
                     </li>
                 </ul>
 
+                <!-- Stable-height content area: a min-height keeps the modal from
+                     shrinking on sparse tabs, and a capped height scrolls long
+                     lists internally — so switching tabs and the ~1.5s live poll
+                     don't keep resizing (and re-centering) the whole dialog. -->
                 <div class="tab-content mt-3">
                     <!-- General -->
                     <div x-show="detail.tab==='general'">

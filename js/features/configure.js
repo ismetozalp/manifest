@@ -92,8 +92,15 @@
             cfg.stage = 'resolving';
             try {
                 if (cfg.item.type === 'magnet') {
-                    cfg.gid = await this.rpc.addUri([cfg.item.value], { dir: cfg.dir, pause: 'true' });
+                    // A *paused* magnet never fetches its metadata (a paused
+                    // download does nothing), so pause:true here would always time
+                    // out. pause-metadata lets aria2 fetch the metadata, then
+                    // pauses the REAL download it spawns (tracked via followedBy in
+                    // _cfgPollMetadata) so the user can still pick files first.
+                    cfg.gid = await this.rpc.addUri([cfg.item.value], { dir: cfg.dir, 'pause-metadata': 'true' });
                 } else {
+                    // A .torrent already carries its metadata, so pause:true is
+                    // fine — the file list is available immediately.
                     cfg.gid = await this.rpc.addTorrent(cfg.item.b64, [], { dir: cfg.dir, pause: 'true' });
                 }
             } catch (e) {
@@ -122,6 +129,16 @@
                 return;
             }
             try {
+                // Magnet handoff: the gid we added is the metadata fetch; once it
+                // completes it spawns the real (pause-metadata'd) download listed
+                // in followedBy — switch to that gid for the actual file list, and
+                // purge the finished [METADATA] entry so it never lingers.
+                const st = await this.rpc.tellStatus(cfg.gid, ['followedBy']);
+                if (st && st.followedBy && st.followedBy.length && cfg.gid !== st.followedBy[0]) {
+                    const metaGid = cfg.gid;
+                    cfg.gid = st.followedBy[0];
+                    this.rpc.removeDownloadResult(metaGid).catch(() => {});
+                }
                 const files = await this.rpc.getFiles(cfg.gid);
                 const ready = (files || []).length > 0 && files[0].path && files[0].path.indexOf('[METADATA]') !== 0;
                 if (ready) {

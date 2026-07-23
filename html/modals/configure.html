@@ -28,17 +28,31 @@
                         <template x-if="queue.configuring.stage === 'destination'">
                             <div>
                                 <label class="form-label mb-1">Destination</label>
-                                <div class="d-flex flex-wrap gap-2 align-items-center">
-                                    <template x-for="b in (settings.destinations.bookmarks || [])" :key="b.id">
-                                        <button type="button" class="btn btn-sm"
-                                                :class="queue.configuring.dir===b.path ? 'btn-primary' : 'btn-outline-secondary'"
-                                                @click="_cfgSetDest(b.path)" x-text="b.label"></button>
-                                    </template>
-                                    <template x-for="r in (settings.destinations.recents || []).slice(0,5)" :key="r">
-                                        <button type="button" class="btn btn-sm"
-                                                :class="queue.configuring.dir===r ? 'btn-primary' : 'btn-outline-secondary'"
-                                                @click="_cfgSetDest(r)" x-text="r"></button>
-                                    </template>
+                                <template x-if="(settings.destinations.bookmarks || []).length">
+                                    <div class="mb-2">
+                                        <div class="text-body-secondary small mb-1">Saved</div>
+                                        <div class="d-flex flex-wrap gap-2 align-items-center">
+                                            <template x-for="b in (settings.destinations.bookmarks || [])" :key="b.id">
+                                                <button type="button" class="btn btn-sm"
+                                                        :class="queue.configuring.dir===b.path ? 'btn-primary' : 'btn-outline-secondary'"
+                                                        :title="b.path" @click="_cfgSetDest(b.path)" x-text="b.label"></button>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </template>
+                                <template x-if="recentDests().length">
+                                    <div class="mb-2">
+                                        <div class="text-body-secondary small mb-1">Recent</div>
+                                        <div class="d-flex flex-wrap gap-2 align-items-center">
+                                            <template x-for="r in recentDests()" :key="r">
+                                                <button type="button" class="btn btn-sm"
+                                                        :class="queue.configuring.dir===r ? 'btn-primary' : 'btn-outline-secondary'"
+                                                        @click="_cfgSetDest(r)" x-text="r"></button>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </template>
+                                <div>
                                     <button type="button" class="btn btn-sm btn-outline-secondary" @click="_cfgBrowseDest()">Browse…</button>
                                 </div>
                                 <div class="text-body-secondary small mt-1" x-text="queue.configuring.dir"></div>

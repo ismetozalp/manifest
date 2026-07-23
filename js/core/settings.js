@@ -98,6 +98,14 @@
             this.settings.destinations.recents = DestList.pushRecent(this.settings.destinations.recents, path, 10);
             this.saveSettings();
         },
+
+        // Recent destinations for the "Recent" chip group: excludes paths that
+        // are already saved bookmarks (shown under "Saved"), capped at 5.
+        recentDests() {
+            const dests = this.settings.destinations || {};
+            const bookmarkPaths = (dests.bookmarks || []).map((b) => b.path);
+            return DestList.recentsExcluding(dests.recents, bookmarkPaths, 5);
+        },
     };
 
     root.ManifestSettings = ManifestSettings;

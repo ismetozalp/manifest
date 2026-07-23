@@ -136,6 +136,29 @@ try {
     await app.locator('#mfConfirmModal.show').waitFor({ state: 'hidden', timeout: 4000 }).catch(() => {});
     check('clear empties the queue (via confirm dialog)', cleared);
 
+    // ---- Quick Add: destination split into Saved (bookmarks) + Recent (v1.1.3) ----
+    await app.evaluate(() => {
+        const d = window.Alpine.$data(document.querySelector('[x-data]'));
+        d.settings.destinations = {
+            default: '/mnt/media/downloads',
+            bookmarks: [{ id: 'b1', label: 'Films', path: '/mnt/media/films' }, { id: 'b2', label: 'ISOs', path: '/mnt/media/iso' }],
+            // '/mnt/media/films' is also a bookmark → must NOT appear under Recent
+            recents: ['/mnt/media/films', '/home/u/dl', '/tmp/x'],
+        };
+        d.openQuickAdd();
+    });
+    await app.locator('#mfQuickAdd.show').waitFor({ timeout: 5000 }).catch(() => {});
+    await page.waitForTimeout(500); // let the fade-in finish (hide() during it is a no-op)
+    const qaText = await app.locator('#mfQuickAdd').innerText().catch(() => '');
+    check('Quick Add destination has separate Saved and Recent groups', /\bSaved\b/.test(qaText) && /\bRecent\b/.test(qaText), '');
+    const savedChips = await app.evaluate(() => window.Alpine.$data(document.querySelector('[x-data]')).settings.destinations.bookmarks.map(b => b.label));
+    const recentChips = await app.evaluate(() => window.Alpine.$data(document.querySelector('[x-data]')).recentDests());
+    check('Saved shows bookmark labels; Recent excludes bookmarked paths',
+        savedChips.join(',') === 'Films,ISOs' && recentChips.join(',') === '/home/u/dl,/tmp/x', JSON.stringify({ savedChips, recentChips }));
+    await app.evaluate(() => { const d = window.Alpine.$data(document.querySelector('[x-data]')); bootstrap.Modal.getOrCreateInstance(d.quickAddModalEl).hide(); });
+    await app.locator('#mfQuickAdd').waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
+    await page.waitForTimeout(300);
+
     // ---- Download table + percent-on-bar + row context menu (needs svc.active) ----
     if (svcActive) {
         await app.evaluate(() => {

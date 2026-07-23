@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.3
+
+### Changed
+- The destination picker (Quick Add and Paste-to-Queue's Configure step) now
+  splits its chips into two labelled groups — **Saved** (your bookmarks) and
+  **Recent** — instead of one mixed row. A path that's already a saved bookmark
+  no longer also shows under Recent.
+
 ## 1.1.2
 
 ### Fixed

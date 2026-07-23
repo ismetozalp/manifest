@@ -69,3 +69,34 @@ test('pushRecent: non-array list is treated as empty', () => {
     assert.deepEqual(R.pushRecent(null, 'a', 5), ['a']);
     assert.deepEqual(R.pushRecent(undefined, 'a', 5), ['a']);
 });
+
+test('recentsExcluding: drops paths that are already bookmarks, keeps order, caps', () => {
+    const recents = ['/a', '/b', '/c', '/d', '/e', '/f'];
+    const bmarks = ['/b', '/d'];
+    assert.deepEqual(R.recentsExcluding(recents, bmarks, 5), ['/a', '/c', '/e', '/f']);
+    // cap applies after exclusion
+    assert.deepEqual(R.recentsExcluding(recents, [], 3), ['/a', '/b', '/c']);
+});
+
+test('recentsExcluding: empty/absent bookmarks → recents pass through (capped)', () => {
+    assert.deepEqual(R.recentsExcluding(['/a', '/b'], [], 5), ['/a', '/b']);
+    assert.deepEqual(R.recentsExcluding(['/a', '/b'], null, 5), ['/a', '/b']);
+    assert.deepEqual(R.recentsExcluding(['/a', '/b'], undefined, 5), ['/a', '/b']);
+});
+
+test('recentsExcluding: filters empty/nullish recents, tolerates non-array inputs', () => {
+    assert.deepEqual(R.recentsExcluding(['/a', '', null, '/b'], [], 5), ['/a', '/b']);
+    assert.deepEqual(R.recentsExcluding(null, ['/x'], 5), []);
+    assert.deepEqual(R.recentsExcluding(undefined, undefined, 5), []);
+});
+
+test('recentsExcluding: absent/negative cap → no capping', () => {
+    const recents = ['/a', '/b', '/c', '/d', '/e', '/f', '/g'];
+    assert.deepEqual(R.recentsExcluding(recents, [], NaN), recents);
+    assert.deepEqual(R.recentsExcluding(recents, [], -1), recents);
+    assert.equal(R.recentsExcluding(recents, [], 2).length, 2);
+});
+
+test('recentsExcluding: all recents are bookmarks → empty', () => {
+    assert.deepEqual(R.recentsExcluding(['/a', '/b'], ['/a', '/b'], 5), []);
+});

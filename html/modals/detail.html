@@ -14,13 +14,13 @@
              or re-centers (the "modal keeps changing size" fix). -->
         <div class="modal-content" style="height: min(82vh, 40rem);">
             <div class="modal-header">
-                <h5 class="modal-title text-truncate" x-text="detailName()"></h5>
-                <div class="d-flex align-items-center gap-2 ms-2">
+                <h5 class="modal-title text-truncate me-auto" style="min-width:0;" x-text="detailName()"></h5>
+                <div class="d-flex align-items-center gap-3 ps-3">
                     <button type="button" class="btn btn-sm btn-link p-0 mf-min-btn" title="Minimize to the bar"
                             aria-label="Minimize" @click="minimizeDetail()">
-                        <svg width="15" height="15" viewBox="0 0 15 15" aria-hidden="true"><rect x="3" y="11" width="9" height="1.6" rx="0.5" fill="currentColor"/></svg>
+                        <svg width="15" height="15" viewBox="0 0 15 15" aria-hidden="true"><rect x="3" y="7" width="9" height="1.6" rx="0.8" fill="currentColor"/></svg>
                     </button>
-                    <button type="button" class="btn-close" @click="closeDetail()"></button>
+                    <button type="button" class="btn-close m-0" @click="closeDetail()"></button>
                 </div>
             </div>
             <div class="modal-body" style="overflow-y: auto;">

@@ -15,8 +15,6 @@ HTTP/FTP/Metalink files, all inside the Cockpit console. Pure HTML/CSS/JS,
 > **📺 And:** [**InFlight TV**](https://github.com/ismetozalp/iftv) (`ismetozalp/iftv`) —
 > an IPTV / live-TV player for the Cockpit console.
 
-![Manifest — unified download manager](screenshots/downloads.png)
-
 ## What it does
 
 Manifest appears under **Tools → Manifest** in Cockpit. It manages an
@@ -29,52 +27,48 @@ plugin-internal sidebar; Cockpit's own left nav is the only one.
 
 ## Features
 
-- **Full-depth torrent support** — General/Files/Peers/Trackers detail tabs,
-  per-file selection before or after start, magnet metadata fetch.
-- **Two ways to add downloads** — a single-item **Quick Add** (auto-detects
-  magnet / HTTP / FTP / Metalink / `.torrent`, base64-safe through the bridge)
-  and a **Paste-to-Queue** staging area for adding many mixed sources at once
-  with a shared destination/configure-on-start step.
-- **No plugin-internal sidebar** — full-width, single-column layout; filters
-  are a horizontal pill row; detail, settings, and add flows are modals or an
-  inline panel, never a second side rail.
-- **Per-user runtime** — aria2 runs as your own `systemctl --user` unit, with
-  its own config, session, and RPC port under `~/.config/cockpit/manifest/`.
-  It never touches or clobbers any aria2 instance you already run yourself.
-- **13 themes** — System, Light, Dark, Aqua, Nord, Solarized, Dracula, Gruvbox,
-  Catppuccin, Tokyo Night, Rosé Pine, Sunset, and Sepia — picked in
-  Settings → Appearance and applied live, with accent-coloured buttons per theme.
-- **Settings that live-apply** — concurrency/connection tuning is pushed to
-  the running aria2 daemon via `changeGlobalOption` as you save, with the
-  remainder (seed ratio/time, min split size, etc.) taking effect on new
-  downloads.
-- **In-UI self-update** — a version badge checks the configured GitHub repo's
-  latest release and can install it without leaving Cockpit.
-
-## Screenshots
-
-> Mockups with placeholder data — generic paths (`/mnt/media/…`) and
-> open-content names (Ubuntu/Debian ISOs, Blender open movies). Not real content.
+> Screenshots are mockups with placeholder data — generic paths (`/mnt/media/…`)
+> and open-content names (Ubuntu/Debian ISOs, Blender open movies). Not real content.
 
 **Unified download manager** — one full-width table for torrents, magnets, and
-HTTP/FTP; live progress (percent on the bar), ↓/↑ speeds, ETA, and per-row actions.
+HTTP/FTP; live progress (percent on the bar), ↓/↑ speeds, ETA, and per-row
+actions. No plugin-internal sidebar: filters are a horizontal pill row; detail,
+settings, and add flows are modals, never a second side rail.
 
-![Download station](screenshots/downloads.png)
+![Unified download manager](screenshots/downloads.png)
 
-**Quick Add** — auto-detects the source (magnet / URL / `.torrent` / Metalink);
-tick **Choose files first** to pick torrent files before it starts.
+**Two ways to add downloads** — a single-item **Quick Add** (auto-detects
+magnet / HTTP / FTP / Metalink / `.torrent`, base64-safe through the bridge)
+and a **Paste-to-Queue** staging area for adding many mixed sources at once
+with a shared destination/configure-on-start step.
 
 ![Quick Add](screenshots/quickadd.png)
 
-**Per-file selection** — a collapsible checkbox tree with folder tri-state, at
-add-time (Quick Add / Paste-to-Queue) or anytime from a torrent's detail view.
+**Full-depth torrent support** — General/Files/Peers/Trackers detail tabs,
+magnet metadata fetch, and per-file selection: a collapsible checkbox tree with
+folder tri-state, at add-time (Quick Add / Paste-to-Queue) or anytime from a
+torrent's detail view.
 
-![File-selection tree](screenshots/filetree.png)
+![Per-file selection tree](screenshots/filetree.png)
 
-**Settings & themes** — live-applied concurrency/connection tuning, saved
-destination bookmarks, and 13 themes with colour swatches.
+**13 themes, applied live** — System, Light, Dark, Aqua, Nord, Solarized,
+Dracula, Gruvbox, Catppuccin, Tokyo Night, Rosé Pine, Sunset, and Sepia — picked
+in Settings → Appearance and applied instantly, with accent-coloured buttons per
+theme. The same panel holds live-applied concurrency/connection tuning and saved
+destination bookmarks.
 
 ![Settings and themes](screenshots/settings-themes.png)
+
+**Settings that live-apply** — concurrency/connection tuning is pushed to the
+running aria2 daemon via `changeGlobalOption` as you save, with the remainder
+(seed ratio/time, min split size, etc.) taking effect on new downloads.
+
+**Per-user runtime** — aria2 runs as your own `systemctl --user` unit, with its
+own config, session, and RPC port under `~/.config/cockpit/manifest/`. It never
+touches or clobbers any aria2 instance you already run yourself.
+
+**In-UI self-update** — a version badge checks the configured GitHub repo's
+latest release and can install it without leaving Cockpit.
 
 ## Requirements
 

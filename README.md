@@ -222,6 +222,18 @@ make uninstall  # remove the installed plugin (use sudo)
 ```
 
 Unit tests (`node --test`), a Playwright smoke test through the live Cockpit
-shell, and a Playwright e2e flow live under `tests/`; see `package.json` for
-the `test:unit` / `test:smoke` / `test:e2e` scripts. None of `tests/`,
-`docs/`, `node_modules/`, or `package.json` are shipped in the release zip.
+shell, plus Playwright e2e / UI / integration suites live under `tests/`; see
+`package.json` for the `test:unit` / `test:smoke` / `test:ui` / `test:e2e` /
+`test:integration` scripts. None of `tests/`, `docs/`, `node_modules/`, or
+`package.json` are shipped in the release zip.
+
+## License
+
+Licensed under the [Apache License 2.0](LICENSE).
+
+## Disclaimer
+
+Built with AI assistance (Anthropic's Claude) as a personal project and shared
+as-is. There are **no guarantees** — it may have bugs. Issues and PRs are
+welcome, but there's no promise of a response or ongoing maintenance. You're
+free to use, modify, fork, and redistribute it under the Apache 2.0 terms.

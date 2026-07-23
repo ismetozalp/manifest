@@ -279,6 +279,55 @@
     --mf-row-selected-bg: #e3d5b8;
 }
 
+/* ── Theme-accent buttons ──
+   Make primary buttons follow the theme's --bs-primary instead of Bootstrap's
+   fixed blue, with a darker hover/active via color-mix. For the built-in
+   Light/Dark themes --bs-primary IS Bootstrap blue, so they are unchanged; only
+   the custom themes (which override --bs-primary) get accent-coloured buttons. */
+.btn-primary {
+    --bs-btn-bg: var(--bs-primary);
+    --bs-btn-border-color: var(--bs-primary);
+    --bs-btn-hover-bg: color-mix(in srgb, var(--bs-primary) 85%, #000);
+    --bs-btn-hover-border-color: color-mix(in srgb, var(--bs-primary) 78%, #000);
+    --bs-btn-active-bg: color-mix(in srgb, var(--bs-primary) 74%, #000);
+    --bs-btn-active-border-color: color-mix(in srgb, var(--bs-primary) 70%, #000);
+    --bs-btn-disabled-bg: var(--bs-primary);
+    --bs-btn-disabled-border-color: var(--bs-primary);
+    --bs-btn-focus-shadow-rgb: var(--bs-primary-rgb);
+}
+.btn-outline-primary {
+    --bs-btn-color: var(--bs-primary);
+    --bs-btn-border-color: var(--bs-primary);
+    --bs-btn-hover-bg: var(--bs-primary);
+    --bs-btn-hover-border-color: var(--bs-primary);
+    --bs-btn-active-bg: var(--bs-primary);
+    --bs-btn-active-border-color: var(--bs-primary);
+    --bs-btn-focus-shadow-rgb: var(--bs-primary-rgb);
+}
+/* Light accents (teal/mauve/etc.) need DARK button text for contrast; the rest
+   keep white. Applies to the filled button and the outline button's hover fill. */
+[data-bs-theme="aqua"] .btn-primary,
+[data-bs-theme="nord"] .btn-primary,
+[data-bs-theme="dracula"] .btn-primary,
+[data-bs-theme="catppuccin"] .btn-primary,
+[data-bs-theme="aqua"] .btn-outline-primary,
+[data-bs-theme="nord"] .btn-outline-primary,
+[data-bs-theme="dracula"] .btn-outline-primary,
+[data-bs-theme="catppuccin"] .btn-outline-primary {
+    --bs-btn-color: #14181a;
+    --bs-btn-hover-color: #14181a;
+    --bs-btn-active-color: #14181a;
+    --bs-btn-disabled-color: #14181a;
+}
+/* Outline buttons must still show the accent as their (un-hovered) text colour,
+   not the dark hover colour, in those light-accent themes. */
+[data-bs-theme="aqua"] .btn-outline-primary,
+[data-bs-theme="nord"] .btn-outline-primary,
+[data-bs-theme="dracula"] .btn-outline-primary,
+[data-bs-theme="catppuccin"] .btn-outline-primary {
+    --bs-btn-color: var(--bs-primary);
+}
+
 /* Wire the manifest.css component classes to the --mf-* accent variables
    (System/Light/Dark leave these unset and fall back to manifest.css's
    Bootstrap-var defaults). */

@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.1
+
+### Fixed
+- Detail dialog: the minimize (–) and close (×) buttons were rendering next to
+  the title instead of at the header's right edge (wrapping the close button in
+  a group dropped Bootstrap's implicit `margin-left:auto`). They're now
+  right-aligned and vertically centred, and long titles truncate again.
+
 ## 1.1.0
 
 ### Download detail

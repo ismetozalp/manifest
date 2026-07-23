@@ -184,7 +184,11 @@
                     }
                 } else if (tab === 'peers') {
                     const totalPieces = Number(this.detail.data && this.detail.data.numPieces) || 0;
-                    const peers = await this.rpc.getPeers(gid);
+                    // getPeers only works while the download is ACTIVE; a completed
+                    // or stopped torrent makes aria2 return "Bad Request". Treat that
+                    // as "no peers" (same as getServers below) rather than surfacing
+                    // a refresh error on every ~1.5s poll of a finished torrent.
+                    const peers = await this.rpc.getPeers(gid).catch(() => []);
                     if (this.detail.gid === gid) {
                         this.detail.peers = (peers || []).map((p) => ({
                             ip: p.ip, port: p.port, client: decodePeerId(p.peerId),

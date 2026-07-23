@@ -2,7 +2,20 @@
 
 A Cockpit plugin that turnkey-provisions and drives a per-user `aria2c` daemon,
 giving the server one unified download station for torrents, magnets, and
-HTTP/FTP/Metalink files, all inside the Cockpit console.
+HTTP/FTP/Metalink files, all inside the Cockpit console. Pure HTML/CSS/JS,
+**no build step**, no server daemon of its own.
+
+> **🗂️ Another Cockpit plugin of mine:** [**Explorer**](https://github.com/ismetozalp/explorer)
+> (`ismetozalp/explorer`) — a full file manager for the Cockpit console. Manifest
+> deep-links straight into it (and Cockpit's built-in **Files**) with "Open folder".
+>
+> **📊 And:** [**ctop**](https://github.com/ismetozalp/ctop) (`ismetozalp/ctop`) —
+> a live system / process monitor for the Cockpit console.
+>
+> **📺 And:** [**InFlight TV**](https://github.com/ismetozalp/iftv) (`ismetozalp/iftv`) —
+> an IPTV / live-TV player for the Cockpit console.
+
+![Manifest — unified download station](screenshots/downloads.png)
 
 ## What it does
 
@@ -28,14 +41,40 @@ plugin-internal sidebar; Cockpit's own left nav is the only one.
 - **Per-user runtime** — aria2 runs as your own `systemctl --user` unit, with
   its own config, session, and RPC port under `~/.config/cockpit/manifest/`.
   It never touches or clobbers any aria2 instance you already run yourself.
-- **Themes** — System, Light, Dark, Aqua, Nord, Solarized, and Dracula, picked
-  in Settings → Appearance and applied live.
+- **13 themes** — System, Light, Dark, Aqua, Nord, Solarized, Dracula, Gruvbox,
+  Catppuccin, Tokyo Night, Rosé Pine, Sunset, and Sepia — picked in
+  Settings → Appearance and applied live, with accent-coloured buttons per theme.
 - **Settings that live-apply** — concurrency/connection tuning is pushed to
   the running aria2 daemon via `changeGlobalOption` as you save, with the
   remainder (seed ratio/time, min split size, etc.) taking effect on new
   downloads.
 - **In-UI self-update** — a version badge checks the configured GitHub repo's
   latest release and can install it without leaving Cockpit.
+
+## Screenshots
+
+> Mockups with placeholder data — generic paths (`/mnt/media/…`) and
+> open-content names (Ubuntu/Debian ISOs, Blender open movies). Not real content.
+
+**Unified download station** — one full-width table for torrents, magnets, and
+HTTP/FTP; live progress (percent on the bar), ↓/↑ speeds, ETA, and per-row actions.
+
+![Download station](screenshots/downloads.png)
+
+**Quick Add** — auto-detects the source (magnet / URL / `.torrent` / Metalink);
+tick **Choose files first** to pick torrent files before it starts.
+
+![Quick Add](screenshots/quickadd.png)
+
+**Per-file selection** — a collapsible checkbox tree with folder tri-state, at
+add-time (Quick Add / Paste-to-Queue) or anytime from a torrent's detail view.
+
+![File-selection tree](screenshots/filetree.png)
+
+**Settings & themes** — live-applied concurrency/connection tuning, saved
+destination bookmarks, and 13 themes with colour swatches.
+
+![Settings and themes](screenshots/settings-themes.png)
 
 ## Requirements
 

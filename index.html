@@ -110,13 +110,15 @@
                     <td class="mf-row-name" :title="rowName(d)" x-text="rowName(d)"></td>
                     <td x-text="ManifestUtil.humanSize(d.totalLength)"></td>
                     <td class="mf-row-progress">
-                        <div class="progress" style="height:0.6rem;">
+                        <div class="progress position-relative" style="height:1.2rem;">
                             <div class="progress-bar"
                                  :class="{'bg-danger': d.status==='error', 'bg-success': d.status==='complete'}"
                                  role="progressbar" :style="'width:' + rowProgress(d) + '%'"
                                  :aria-valuenow="rowProgress(d)" aria-valuemin="0" aria-valuemax="100"></div>
+                            <!-- percent centered ON the bar (visible at any fill) -->
+                            <span class="mf-row-pct position-absolute top-50 start-50 translate-middle small fw-medium"
+                                  x-text="rowProgress(d) + '%'"></span>
                         </div>
-                        <span class="mf-row-pct text-body-secondary" x-text="rowProgress(d) + '%'"></span>
                     </td>
                     <td x-text="ManifestUtil.humanSpeed(d.downloadSpeed)"></td>
                     <td x-text="ManifestUtil.humanSpeed(d.uploadSpeed)"></td>

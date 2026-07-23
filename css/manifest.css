@@ -38,6 +38,16 @@ body { margin: 0; }
 /* ── Filter pill row: horizontal, wraps on narrow widths — NOT a side rail ── */
 .mf-pills { border-bottom: 1px solid var(--bs-border-color); }
 
+/* Percent label centered ON the progress bar. A thin text-shadow (in the track
+   colour) keeps it legible over both the coloured fill and the empty track,
+   in light and dark themes. */
+.mf-row-pct {
+    pointer-events: none;
+    color: var(--bs-body-color);
+    text-shadow: 0 0 2px var(--bs-secondary-bg), 0 0 2px var(--bs-secondary-bg);
+    line-height: 1;
+}
+
 /* ── Unified download table: full width, single column layout ── */
 .mf-main { width: 100%; overflow-x: auto; }
 .mf-table { width: 100%; }

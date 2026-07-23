@@ -211,12 +211,25 @@
         async _stopAndPurge(t) {
             const st = t && t.status;
             if (st === 'active' || st === 'waiting' || st === 'paused') {
-                try { await this.rpc.remove(t.gid); }
-                catch (e) { try { await this.rpc.forceRemove(t.gid); } catch (e2) { /* fall through to purge */ } }
+                // forceRemove, NOT remove: aria2.remove on an active torrent does a
+                // graceful stop (contacts BitTorrent trackers to unregister first),
+                // leaving the download transitioning — so the removeDownloadResult
+                // below can't purge it yet, the row reappears on the next poll, and
+                // it takes a SECOND click to clear. forceRemove stops it immediately
+                // with no tracker wait, so the purge lands on the first pass.
+                try { await this.rpc.forceRemove(t.gid); }
+                catch (e) { try { await this.rpc.remove(t.gid); } catch (e2) { /* fall through to purge */ } }
             }
-            // Purge the (now-)stopped entry. Works for complete/error/removed;
-            // harmless no-op if it's already gone.
-            await this.rpc.removeDownloadResult(t.gid).catch(() => {});
+            // Purge the (now-)stopped entry, retrying briefly in case aria2 is
+            // still finalizing the just-stopped download. Works for
+            // complete/error/removed; a no-op once it's already gone.
+            for (let i = 0; i < 6; i++) {
+                try { await this.rpc.removeDownloadResult(t.gid); return; }
+                catch (e) {
+                    if (i === 5) return;
+                    await new Promise((r) => setTimeout(r, 150));
+                }
+            }
         },
 
         removeDl(d) {

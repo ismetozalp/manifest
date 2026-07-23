@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.1.2
+
+### Fixed
+- Removing (or Remove & delete) an actively-downloading torrent took two
+  clicks: the first stopped it but left the row behind. `aria2.remove` does a
+  graceful stop that contacts trackers first, so the download was still
+  transitioning when the purge ran and the row came back on the next poll.
+  Active downloads are now stopped with `aria2.forceRemove` (immediate, no
+  tracker wait) and the purge retries briefly, so it clears in one pass.
+
 ## 1.1.1
 
 ### Fixed

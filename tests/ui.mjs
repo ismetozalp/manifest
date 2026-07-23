@@ -318,6 +318,22 @@ try {
         await page.waitForTimeout(150);
         check('Details button hidden when multiple rows are selected', !(await app.locator('.mf-bulkbar button', { hasText: /^Details$/ }).isVisible().catch(() => false)));
         await app.evaluate(() => window.Alpine.$data(document.querySelector('[x-data]')).clearSelection());
+
+        // ---- Removing an ACTIVE download force-removes then purges in one pass (v1.1.2 fix) ----
+        const purgeCalls = await app.evaluate(async () => {
+            const d = window.Alpine.$data(document.querySelector('[x-data]'));
+            const calls = [];
+            const realRpc = d.rpc;
+            d.rpc = {
+                forceRemove: (g) => { calls.push('forceRemove'); return Promise.resolve(g); },
+                remove: (g) => { calls.push('remove'); return Promise.resolve(g); },
+                removeDownloadResult: (g) => { calls.push('removeDownloadResult'); return Promise.resolve('OK'); },
+            };
+            try { await d._stopAndPurge({ gid: 'zz', status: 'active' }); } finally { d.rpc = realRpc; }
+            return calls;
+        });
+        check('active download is force-removed then purged in one pass (no second click)',
+            JSON.stringify(purgeCalls) === JSON.stringify(['forceRemove', 'removeDownloadResult']), JSON.stringify(purgeCalls));
     } else {
         check('table/context-menu/detail checks (skipped — aria2 not running)', true, 'set up aria2 to exercise these');
     }

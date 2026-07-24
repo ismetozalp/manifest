@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.4 (unreleased)
+## 1.1.4
 
 ### Fixed
 - Theme selection now persists immediately instead of through the shared 400ms

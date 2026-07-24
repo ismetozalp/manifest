@@ -98,6 +98,11 @@ try {
     const btn = await app.evaluate(() => { const b = [...document.querySelectorAll('#mfSettings .btn-primary')].pop(); const cs = getComputedStyle(b); return { bg: cs.backgroundColor }; });
     check('primary button follows the theme accent (not Bootstrap blue)', !/13,\s*110,\s*253/.test(btn.bg), `Save bg=${btn.bg}`);
 
+    // Close (×) must be whitened on custom dark themes (Bootstrap only does this
+    // for data-bs-theme="dark"); gruvbox is applied from the accent check above.
+    const closeFilter = await app.evaluate(() => { const b = document.querySelector('#mfSettings .btn-close'); return b ? getComputedStyle(b).filter : 'none'; });
+    check('modal close (×) is whitened on custom dark themes (gruvbox)', /invert/.test(closeFilter), closeFilter);
+
     // setTheme persists immediately (not via the 400ms debounce): spy on the
     // write and assert setTheme triggers it synchronously.
     const themeWrite = await app.evaluate(() => {
@@ -265,8 +270,11 @@ try {
         await app.locator('#mfConfirmModal.show').waitFor({ timeout: 4000 }).catch(() => {});
         await page.waitForTimeout(400);
         await app.locator('#mfConfirmModal button', { hasText: /^\s*OK\s*$/ }).first().click({ timeout: 4000 }).catch(() => {});
+        // Generous poll window: _stopAndPurge retries removeDownloadResult up to
+        // 6×150ms per row, and here the injected gids aren't real so every retry
+        // is exhausted before the local delete — 3 rows can take a few seconds.
         let emptied = false;
-        for (let i = 0; i < 20 && !emptied; i++) { await page.waitForTimeout(150); emptied = (await app.evaluate(() => Object.keys(window.Alpine.$data(document.querySelector('[x-data]')).downloads).length)) === 0; }
+        for (let i = 0; i < 60 && !emptied; i++) { await page.waitForTimeout(150); emptied = (await app.evaluate(() => Object.keys(window.Alpine.$data(document.querySelector('[x-data]')).downloads).length)) === 0; }
         await app.locator('#mfConfirmModal.show').waitFor({ state: 'hidden', timeout: 4000 }).catch(() => {});
         check('bulk remove (via confirm) clears the selected rows + selection', emptied && (await app.evaluate(() => window.Alpine.$data(document.querySelector('[x-data]')).selection.size)) === 0);
         // re-inject the three rows so the later detail-tree section still has data

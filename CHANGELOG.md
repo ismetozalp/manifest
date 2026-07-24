@@ -7,6 +7,14 @@
   save debounce, so reloading or switching Cockpit pages right after picking a
   theme can no longer drop the change. Added `saveSettingsImmediate()` for
   discrete, deliberate setting changes.
+- Detail dialog close (×) is now visible on the custom dark themes (aqua, nord,
+  solarized, dracula, gruvbox, catppuccin, tokyo night, rosé pine, sunset).
+  Bootstrap only whitens `.btn-close` for `data-bs-theme="dark"`, so on the
+  custom dark themes it was rendering as a near-black glyph on a dark header.
+- Peers tab: peer clients with non-UTF-8 peer ids showed percent-escaped
+  gibberish (e.g. `%2DBT7b0W%2D%97%B8`). Peer ids are now decoded byte-wise
+  (peer-id decode moved to `core/peerid.js`), and the Azureus version parse
+  accepts base62 versions, so clients read cleanly (e.g. `BitTorrent 7b0W`).
 
 ## 1.1.3
 

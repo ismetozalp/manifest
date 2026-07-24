@@ -328,6 +328,22 @@
     --bs-btn-color: var(--bs-primary);
 }
 
+/* Modal close (×): Bootstrap only whitens .btn-close for data-bs-theme="dark",
+   so on the custom DARK themes the × renders as a near-black glyph on a dark
+   header (the light/sepia themes keep the default dark glyph, which is correct).
+   Apply the same white-invert filter Bootstrap uses for its dark theme. */
+[data-bs-theme="aqua"] .btn-close,
+[data-bs-theme="nord"] .btn-close,
+[data-bs-theme="solarized"] .btn-close,
+[data-bs-theme="dracula"] .btn-close,
+[data-bs-theme="gruvbox"] .btn-close,
+[data-bs-theme="catppuccin"] .btn-close,
+[data-bs-theme="tokyonight"] .btn-close,
+[data-bs-theme="rosepine"] .btn-close,
+[data-bs-theme="sunset"] .btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
+}
+
 /* Wire the manifest.css component classes to the --mf-* accent variables
    (System/Light/Dark leave these unset and fall back to manifest.css's
    Bootstrap-var defaults). */

@@ -18,23 +18,10 @@
 
     const DETAIL_POLL_MS = 1500;
 
-    // Best-effort Azureus-style ("-XX####-...") peer-id → client name decode.
-    // aria2's getPeers() hands back percent-encoded peer IDs; unknown/garbled
-    // IDs just fall back to a truncated raw string rather than erroring.
-    const CLIENT_CODES = {
-        UT: 'µTorrent', TR: 'Transmission', DE: 'Deluge', LT: 'libtorrent',
-        qB: 'qBittorrent', AZ: 'Vuze/Azureus', BC: 'BitComet', KT: 'KTorrent',
-        RS: 'Rufus', WW: 'WebTorrent', A2: 'aria2', LP: 'libtorrent (Rasterbar)',
-        BT: 'BitTorrent', SD: 'Xunlei', XL: 'Xunlei', TS: 'TorrentStorm',
-    };
-    function decodePeerId(peerId) {
-        if (!peerId) return '';
-        let raw = peerId;
-        try { raw = decodeURIComponent(peerId); } catch (e) { /* leave as-is */ }
-        const m = /^-([A-Za-z]{2})(\d{4})-/.exec(raw);
-        if (m) return (CLIENT_CODES[m[1]] || m[1]) + ' ' + m[2].split('').join('.');
-        return raw.replace(/[^\x20-\x7e]/g, '.').slice(0, 20);
-    }
+    // Peer-id → client name decode lives in core/peerid.js (byte-wise percent
+    // decode + Azureus-style parse), so it's unit-tested and can't regress to
+    // showing percent-escaped gibberish for non-UTF-8 peer ids.
+    const decodePeerId = root.ManifestPeerId.decodePeerId;
 
     // Counts set bits across an aria2 `bitfield` hex string — used as a
     // best-effort per-peer completion estimate (aria2 doesn't hand back a

@@ -114,6 +114,9 @@ document.addEventListener('alpine:init', () => {
             // has ever run (spec §6.2 persistence works offline).
             try { await this._loadQueue(); } catch (e) {}
             try { await this._loadSettings(); } catch (e) {}
+            // Restore detail chips the user had minimized to the taskbar last
+            // session; stale ones are pruned once downloads are polled.
+            try { this._restoreMinimized(); } catch (e) {}
             try { await this._maybeCheckUpdateOnStartup(); } catch (e) { console.error('[manifest] startup update check failed:', e); }
             try { await this._refreshServiceState(); } catch (e) { console.error('[manifest] initial service state check failed:', e); }
             this._startServicePoll();

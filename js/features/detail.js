@@ -82,13 +82,29 @@
         _detailPollInFlight: false,
         _detailVisHandler: null,
 
+        // Restore minimized chips persisted in settings.yml (survives re-login).
+        // Called from init() after settings load. Stale chips (whose download no
+        // longer exists) are dropped later, once downloads are polled.
+        _restoreMinimized() {
+            const saved = (this.settings && this.settings.minimizedDetails) || [];
+            this.minimizedDetails = saved.map((m) => ({ gid: m.gid, name: m.name }));
+        },
+
+        // Persist the current minimized set to settings.yml.
+        _persistMinimized() {
+            this.settings.minimizedDetails = this.minimizedDetails.map((m) => ({ gid: m.gid, name: m.name }));
+            this.saveSettings();
+        },
+
         // ── Row action: "Details" (context menu item + a caret on torrent
         // rows in index.html) ──
         openDetail(d) {
             this.closeContextMenu && this.closeContextMenu();
             if (!d || !d.gid) return;
             // Restoring/opening a download clears any minimized chip for it.
+            const before = this.minimizedDetails.length;
             this.minimizedDetails = this.minimizedDetails.filter((m) => m.gid !== d.gid);
+            if (this.minimizedDetails.length !== before) this._persistMinimized();
             this.detail = Object.assign(freshDetail(), { open: true, gid: d.gid });
             bootstrap.Modal.getOrCreateInstance(this.detailModalEl).show();
             this._detailStartPoll();
@@ -103,6 +119,7 @@
             const name = this.detailName() || gid;
             if (!this.minimizedDetails.some((m) => m.gid === gid)) {
                 this.minimizedDetails.push({ gid, name });
+                this._persistMinimized();
             }
             bootstrap.Modal.getOrCreateInstance(this.detailModalEl).hide();
         },
@@ -113,12 +130,14 @@
             const d = this.downloads[gid];
             if (d) { this.openDetail(d); return; }
             this.minimizedDetails = this.minimizedDetails.filter((m) => m.gid !== gid);
+            this._persistMinimized();
             this.toast('That download is no longer available', 'danger');
         },
 
         // Dismiss a minimized chip without restoring it.
         closeMinimized(gid) {
             this.minimizedDetails = this.minimizedDetails.filter((m) => m.gid !== gid);
+            this._persistMinimized();
         },
 
         closeDetail() {

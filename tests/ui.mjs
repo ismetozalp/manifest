@@ -351,6 +351,22 @@ try {
         });
         check('minimize hides the modal and adds a taskbar chip', min.count === 1 && !min.modalShown, JSON.stringify(min));
         check('taskbar chip is visible with the download name', await app.locator('.mf-taskbar .mf-taskbar-item').isVisible() && /Test Torrent/.test(min.name || ''));
+        // persisted to settings so it survives a re-login (settings.minimizedDetails)
+        const persistedMin = await app.evaluate(() => window.Alpine.$data(document.querySelector('[x-data]')).settings.minimizedDetails.map((m) => m.gid));
+        check('minimized chip is persisted to settings (survives re-login)', JSON.stringify(persistedMin) === JSON.stringify(['b']), JSON.stringify(persistedMin));
+        // stale chip (download no longer exists) is pruned + de-persisted on the next merge
+        const stalePrune = await app.evaluate(() => {
+            const d = window.Alpine.$data(document.querySelector('[x-data]'));
+            d.minimizedDetails = [{ gid: 'GONE', name: 'Removed directly' }, { gid: 'b', name: 'Kept' }];
+            d.settings.minimizedDetails = d.minimizedDetails.map((m) => ({ gid: m.gid, name: m.name }));
+            d._mergeDownloads(Object.values(d.downloads));   // re-merge existing rows; 'GONE' isn't among them
+            return { chips: d.minimizedDetails.map((m) => m.gid), persisted: d.settings.minimizedDetails.map((m) => m.gid) };
+        });
+        check('stale minimized chip (download removed) is pruned + de-persisted',
+            JSON.stringify(stalePrune.chips) === JSON.stringify(['b']) && JSON.stringify(stalePrune.persisted) === JSON.stringify(['b']), JSON.stringify(stalePrune));
+        // ensure a single 'b' chip is present for the restore-click check below
+        await app.evaluate(() => { window.Alpine.$data(document.querySelector('[x-data]')).minimizedDetails = [{ gid: 'b', name: 'Test Torrent 2160p' }]; });
+        await page.waitForTimeout(100);
         // restore by clicking the chip
         await app.locator('.mf-taskbar .mf-taskbar-item').first().click();
         await app.locator('#mfDetail.show').waitFor({ timeout: 4000 }).catch(() => {});

@@ -36,6 +36,32 @@ test('columns: a corrupt/old saved layout falls back to defaults (never breaks t
     assert.deepEqual(D.mergeSettings({ columns: {} }).columns.widths, D.DEFAULT_SETTINGS.columns.widths);
     assert.deepEqual(D.mergeSettings({ columns: null }).columns.widths, D.DEFAULT_SETTINGS.columns.widths);
 });
+
+test('minimizedDetails: default empty; valid {gid,name} entries round-trip', () => {
+    assert.deepEqual(D.DEFAULT_SETTINGS.minimizedDetails, []);
+    assert.deepEqual(D.mergeSettings({}).minimizedDetails, []);
+    const saved = [{ gid: 'abc', name: 'Movie A' }, { gid: 'def', name: 'Movie B' }];
+    assert.deepEqual(D.mergeSettings({ minimizedDetails: saved }).minimizedDetails, saved);
+});
+
+test('minimizedDetails: junk entries dropped; missing name defaults to the gid', () => {
+    const loaded = [
+        { gid: 'ok', name: 'Fine' },
+        { gid: '', name: 'empty gid' },   // no gid → dropped
+        { name: 'no gid' },               // no gid → dropped
+        { gid: 'nn' },                    // no name → name = gid
+        null, 'nope', 42,                 // non-objects → dropped
+    ];
+    assert.deepEqual(D.mergeSettings({ minimizedDetails: loaded }).minimizedDetails,
+        [{ gid: 'ok', name: 'Fine' }, { gid: 'nn', name: 'nn' }]);
+});
+
+test('minimizedDetails: non-array → empty; strips extra fields to {gid,name}', () => {
+    assert.deepEqual(D.mergeSettings({ minimizedDetails: 'bogus' }).minimizedDetails, []);
+    assert.deepEqual(D.mergeSettings({ minimizedDetails: null }).minimizedDetails, []);
+    assert.deepEqual(D.mergeSettings({ minimizedDetails: [{ gid: 'g', name: 'n', extra: 1 }] }).minimizedDetails,
+        [{ gid: 'g', name: 'n' }]);
+});
 test('toAria2GlobalOptions maps + clamps + formats speeds', () => {
     const o = D.toAria2GlobalOptions(D.mergeSettings({
         limits: { maxConnectionsPerServer: 99, downloadLimitKiB: 500, minSplitSizeMiB: 20 }

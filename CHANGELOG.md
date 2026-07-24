@@ -2,6 +2,12 @@
 
 ## 1.1.4
 
+### Added
+- Minimized detail dialogs now persist across sessions: chips docked to the
+  bottom taskbar are saved to `settings.yml` and restored on re-login. A chip
+  whose download no longer exists (e.g. removed directly) is dropped once
+  downloads are polled.
+
 ### Fixed
 - Theme selection now persists immediately instead of through the shared 400ms
   save debounce, so reloading or switching Cockpit pages right after picking a

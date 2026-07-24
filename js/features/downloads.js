@@ -151,10 +151,14 @@
                 const pruned = root.ManifestSelection.prune(this.selection, Object.keys(this.downloads));
                 if (pruned.size !== this.selection.size) this.selection = pruned;
             }
-            // Drop minimized-detail chips for downloads that no longer exist.
+            // Drop minimized-detail chips for downloads that no longer exist
+            // (e.g. the user removed one directly), and persist the trimmed set.
             if (this.minimizedDetails && this.minimizedDetails.length) {
                 const kept = this.minimizedDetails.filter((m) => this.downloads[m.gid]);
-                if (kept.length !== this.minimizedDetails.length) this.minimizedDetails = kept;
+                if (kept.length !== this.minimizedDetails.length) {
+                    this.minimizedDetails = kept;
+                    if (this._persistMinimized) this._persistMinimized();
+                }
             }
         },
 

@@ -20,11 +20,24 @@
             seedRatio: 1.0,                         // seed-ratio (per torrent)
             seedTimeMin: 0                          // seed-time minutes (0 = disabled)
         },
-        update: { repo: 'ismetozalp/manifest', checkOnStartup: true }
+        update: { repo: 'ismetozalp/manifest', checkOnStartup: true },
+        // Detail dialogs the user minimized to the bottom taskbar, persisted so
+        // they survive a re-login. Each is { gid, name }; entries whose download
+        // no longer exists are pruned once downloads are polled (removing is OK).
+        minimizedDetails: []
     };
 
     function mergeOne(defaults, loaded) {
         return Object.assign({}, defaults, loaded || {});
+    }
+
+    // Keep only well-formed { gid, name } entries (a hand-edited or partially
+    // written settings.yml shouldn't put junk in the taskbar).
+    function mergeMinimized(loaded) {
+        if (!Array.isArray(loaded)) return [];
+        return loaded
+            .filter((m) => m && typeof m.gid === 'string' && m.gid)
+            .map((m) => ({ gid: m.gid, name: typeof m.name === 'string' && m.name ? m.name : m.gid }));
     }
 
     function mergeSettings(loaded) {
@@ -36,7 +49,8 @@
             columns: { widths: Columns.normalizeWidths(loaded.columns && loaded.columns.widths) },
             destinations: mergeOne(DEFAULT_SETTINGS.destinations, loaded.destinations),
             limits: mergeOne(DEFAULT_SETTINGS.limits, loaded.limits),
-            update: mergeOne(DEFAULT_SETTINGS.update, loaded.update)
+            update: mergeOne(DEFAULT_SETTINGS.update, loaded.update),
+            minimizedDetails: mergeMinimized(loaded.minimizedDetails)
         };
     }
 

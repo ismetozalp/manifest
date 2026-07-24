@@ -44,6 +44,13 @@ try {
     if (!app) finish(3, `Could not locate the Manifest plugin frame. Shot: ${SHOT}`);
     await app.locator('.mf-topbar').first().waitFor({ timeout: 20000 });
     check('shell renders', await app.locator('.mf-title').filter({ hasText: 'Manifest' }).count() > 0);
+    // IMPORTANT: keep this suite from ever writing to the real settings.yml.
+    // Column-drag/theme/destination checks below mutate settings and trigger
+    // saveSettings(), which dumps the WHOLE settings object — so a fake
+    // destination set for one check would otherwise clobber the user's real
+    // bookmarks on disk. Stub the disk write to a no-op; all mutations stay
+    // in-memory. (Actual disk persistence is covered by tests/theme-persist.)
+    await app.evaluate(() => { const d = window.Alpine.$data(document.querySelector('[x-data]')); d._writeSettingsYaml = () => Promise.resolve(); });
     // Let the async service check (init → _refreshServiceState) settle before we
     // decide whether to run the service-gated table/detail section.
     await app.evaluate(async () => { const d = window.Alpine.$data(document.querySelector('[x-data]')); for (let i = 0; i < 40 && d.svc.state === 'unknown'; i++) await new Promise(r => setTimeout(r, 300)); });
@@ -90,6 +97,21 @@ try {
     await page.waitForTimeout(120);
     const btn = await app.evaluate(() => { const b = [...document.querySelectorAll('#mfSettings .btn-primary')].pop(); const cs = getComputedStyle(b); return { bg: cs.backgroundColor }; });
     check('primary button follows the theme accent (not Bootstrap blue)', !/13,\s*110,\s*253/.test(btn.bg), `Save bg=${btn.bg}`);
+
+    // setTheme persists immediately (not via the 400ms debounce): spy on the
+    // write and assert setTheme triggers it synchronously.
+    const themeWrite = await app.evaluate(() => {
+        const d = window.Alpine.$data(document.querySelector('[x-data]'));
+        let writes = 0; const orig = d._writeSettingsYaml;
+        d._writeSettingsYaml = () => { writes++; return Promise.resolve(); };
+        const pendingBefore = !!d._saveTimer;
+        d.setTheme('nord');
+        const immediate = writes;                 // 1 right away if not debounced
+        d._writeSettingsYaml = orig;
+        return { immediate, pendingBefore, saveTimerAfter: !!d._saveTimer };
+    });
+    check('theme selection writes settings immediately (no debounce)', themeWrite.immediate === 1 && themeWrite.saveTimerAfter === false, JSON.stringify(themeWrite));
+
     await app.evaluate(() => { const d = window.Alpine.$data(document.querySelector('[x-data]')); d.settings.theme = 'dark'; d.applyTheme(); });
 
     // Modal stacking: folder picker over Settings

@@ -78,6 +78,16 @@
             }, 400);
         },
 
+        // Persist immediately, bypassing the 400ms debounce. For discrete,
+        // deliberate changes (e.g. picking a theme) where a reload/navigation
+        // within the debounce window shouldn't be able to drop the write.
+        // Cancels any pending debounced save so they don't double-write.
+        saveSettingsImmediate() {
+            if (this._suppressSettingsSave) return Promise.resolve();
+            if (this._saveTimer) { clearTimeout(this._saveTimer); this._saveTimer = null; }
+            return this._writeSettingsYaml().catch((e) => console.error('[manifest] save settings failed:', e));
+        },
+
         addBookmark(label, path) {
             const id = (Date.now().toString(36) + Math.random().toString(36).slice(2, 8));
             this.settings.destinations.bookmarks.push({ id, label: label || path, path });

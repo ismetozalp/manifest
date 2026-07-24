@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.4 (unreleased)
+
+### Fixed
+- Theme selection now persists immediately instead of through the shared 400ms
+  save debounce, so reloading or switching Cockpit pages right after picking a
+  theme can no longer drop the change. Added `saveSettingsImmediate()` for
+  discrete, deliberate setting changes.
+
 ## 1.1.3
 
 ### Changed

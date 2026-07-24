@@ -30,12 +30,13 @@
             bootstrap.Modal.getOrCreateInstance(this.settingsModalEl).show();
         },
 
-        // Live preview immediately, then persist — matches the plan's
-        // "on change: call applyTheme() immediately then saveSettings()".
+        // Live preview immediately, then persist right away (not debounced):
+        // a theme pick is a single deliberate click, and an immediate write
+        // means reloading/navigating straight after can't lose the change.
         setTheme(id) {
             this.settings.theme = id;
             if (typeof this.applyTheme === 'function') this.applyTheme();
-            this.saveSettings();
+            this.saveSettingsImmediate();
         },
 
         // Debounced live-apply of the aria2-global-option-mapped limits

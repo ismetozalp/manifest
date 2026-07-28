@@ -122,6 +122,7 @@ try {
     // Modal stacking: folder picker over Settings
     await app.locator('#mfSettings button', { hasText: /Browse/ }).first().click({ timeout: 4000 });
     await app.locator('#mfFolderPicker.show').waitFor({ timeout: 8000 });
+    await page.waitForTimeout(450); // let the fade-in finish (hide() during it is a no-op)
     const stack = await app.evaluate(() => {
         const z = (el) => parseInt(getComputedStyle(el).zIndex) || 0;
         const picker = document.querySelector('#mfFolderPicker'), settings = document.querySelector('#mfSettings');
@@ -130,7 +131,14 @@ try {
     });
     check('folder picker stacks above the modal that opened it', stack.pickerZ > stack.settingsZ && stack.topInPicker, JSON.stringify(stack));
     await app.locator('#mfFolderPicker button', { hasText: /Cancel/ }).first().click({ timeout: 3000 }).catch(() => {});
-    await app.locator('#mfFolderPicker.show').waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
+    await app.locator('#mfFolderPicker').waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
+    // fallback: if the picker is somehow still up, force it closed so it can't
+    // intercept the Settings close click below
+    if (await app.locator('#mfFolderPicker.show').count()) {
+        await app.evaluate(() => bootstrap.Modal.getOrCreateInstance(document.querySelector('#mfFolderPicker')).hide());
+        await app.locator('#mfFolderPicker').waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
+    }
+    await page.waitForTimeout(200);
     await app.locator('#mfSettings [data-bs-dismiss="modal"]').first().click({ timeout: 4000 });
     await app.locator('#mfSettings.show').waitFor({ state: 'hidden', timeout: 5000 });
     check('settings modal closes', true);
@@ -191,6 +199,10 @@ try {
         await app.evaluate(() => {
             const d = window.Alpine.$data(document.querySelector('[x-data]'));
             if (d.stopPolling) d.stopPolling();
+            // A real download may have auto-opened the docked panel earlier — close
+            // it, and neutralize auto-open for the injected rows below.
+            d.detail.open = false; d.minimizedDetails = [];
+            d._autoOpenPrimed = true; d._autoSeen = new Set();
             d.deepLinks = { explorer: true, files: true };
             const mk = (gid, name, total, done, spd, status, bt) => ({ gid, status, totalLength: String(total), completedLength: String(done), downloadSpeed: String(spd), uploadSpeed: '0', connections: status === 'active' ? '9' : '0', numSeeders: '3', dir: '/mnt/media', files: [{ path: '/mnt/media/' + name, selected: 'true' }], bittorrent: bt ? { info: { name } } : undefined, errorCode: '0' });
             d.downloads = {
@@ -424,6 +436,19 @@ try {
             return { open: d.detail.open, gid: d.detail.gid, chips: d.minimizedDetails.map(m => m.gid) };
         });
         check('a newly-started download auto-opens the panel + adds a chip', autoOpen.open === true && autoOpen.gid === 'NEWDL' && autoOpen.chips.includes('NEWDL'), JSON.stringify(autoOpen));
+
+        // ---- Panel auto-closes when the download it shows disappears (no stuck empty panel) ----
+        const stalePanel = await app.evaluate(() => {
+            const d = window.Alpine.$data(document.querySelector('[x-data]'));
+            d._autoOpenPrimed = true; d._autoSeen = new Set(Object.keys(d.downloads)); d._dismissedDetails = new Set();
+            d.openDetail(d.downloads['NEWDL']);          // panel open on NEWDL
+            const openedOn = { open: d.detail.open, gid: d.detail.gid };
+            delete d.downloads['NEWDL'];                 // NEWDL removed / gid changed
+            d._mergeDownloads(Object.values(d.downloads));
+            return { openedOn, afterOpen: d.detail.open };
+        });
+        check('docked panel auto-closes when its download disappears (no stuck empty panel)',
+            stalePanel.openedOn.open === true && stalePanel.afterOpen === false, JSON.stringify(stalePanel));
 
         await app.evaluate(() => { const d = window.Alpine.$data(document.querySelector('[x-data]')); d.detail.open = false; d.minimizedDetails = []; delete d.downloads['NEWDL']; });
         await page.waitForTimeout(200);

@@ -185,7 +185,13 @@
         _autoOpenActive() {
             if (!this._autoSeen) this._autoSeen = new Set();
             if (!this._dismissedDetails) this._dismissedDetails = new Set();
-            const isActive = (g) => this.downloads[g] && this.downloads[g].status === 'active';
+            // Only downloads that are actually DOWNLOADING (active and not yet
+            // complete) — a seeding torrent is 'active' in aria2 but shouldn't
+            // pop its detail open.
+            const isActive = (g) => {
+                const x = this.downloads[g];
+                return x && x.status === 'active' && (Number(x.completedLength) || 0) < (Number(x.totalLength) || 0);
+            };
             const active = Object.keys(this.downloads).filter(isActive);
             if (!this._autoOpenPrimed) {
                 active.forEach((g) => this._autoSeen.add(g));

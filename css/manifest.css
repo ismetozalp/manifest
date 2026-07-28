@@ -115,12 +115,14 @@ body.mf-col-resizing, body.mf-col-resizing * {
 /* Reserve space so the permanent bottom taskbar never covers page content. */
 body { padding-bottom: var(--mf-taskbar-h); }
 
-/* Detail-session taskbar: permanent, fixed to the very bottom, above the docked
-   detail panel and the modal layer, so chips stay clickable at all times. */
+/* Detail-session taskbar: permanent, fixed to the very bottom. It and the docked
+   panel are a background dock BELOW the Bootstrap modal layer (backdrop 1050) —
+   so Quick Add/Paste/Settings modals cover them instead of the panel covering a
+   modal's footer buttons. */
 .mf-taskbar {
     position: fixed;
     left: 0; right: 0; bottom: 0;
-    z-index: 1090;
+    z-index: 1000;
     display: flex;
     gap: 6px;
     align-items: center;
@@ -141,7 +143,7 @@ body { padding-bottom: var(--mf-taskbar-h); }
     position: fixed;
     left: 0; right: 0;
     bottom: var(--mf-taskbar-h);
-    z-index: 1085;
+    z-index: 999;
     background: var(--bs-body-bg);
     border-top: 1px solid var(--bs-border-color);
     box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.28);

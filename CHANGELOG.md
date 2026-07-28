@@ -22,6 +22,14 @@
 - **Peers/Trackers tables no longer shake:** they use a fixed layout, so a
   changing speed value can't widen a column and shove the rest sideways (same
   fix as the main table).
+- **No more stuck empty detail panel:** if the download a panel is showing
+  disappears (removed, or aria2 reassigns gids on restart), the panel now
+  closes automatically instead of sitting open with empty data.
+- **Modals sit above the dock:** the docked detail panel and the taskbar now
+  render below the modal layer, so Quick Add / Paste / Settings are no longer
+  covered by the panel.
+- **Auto-open only while downloading:** a torrent that is merely seeding
+  (100% complete but still "active" in aria2) no longer pops its detail open.
 
 ## 1.1.4
 

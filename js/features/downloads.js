@@ -160,6 +160,14 @@
                     if (this._persistMinimized) this._persistMinimized();
                 }
             }
+            // If the docked panel is showing a download that no longer exists
+            // (removed, or aria2 reassigned gids on restart), close it — it would
+            // otherwise sit open showing empty data with no taskbar chip, and
+            // (across a soft reload) look like a stuck empty panel.
+            if (this.detail && this.detail.open && (!this.detail.gid || !this.downloads[this.detail.gid])) {
+                this.detail.open = false;
+                if (this._detailStopPoll) this._detailStopPoll();
+            }
             // Auto-open the detail panel for downloads that just started.
             if (this._autoOpenActive) this._autoOpenActive();
         },

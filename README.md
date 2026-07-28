@@ -49,11 +49,13 @@ with a shared destination/configure-on-start step.
 
 ![Quick Add](screenshots/quickadd.png)
 
-**Full-depth torrent support** — General/Files/Peers/Trackers detail tabs,
-magnet metadata fetch, and per-file selection: a collapsible checkbox tree with
-folder tri-state, at add-time (Quick Add / Paste-to-Queue) or anytime from a
-torrent's detail view. The detail dialog can be **minimized to a bottom taskbar**
-(like a file preview) and restored with a click.
+**Full-depth torrent support** — General/Files/Peers/Trackers detail tabs (Peers
+and Trackers sortable), magnet metadata fetch, and per-file selection: a
+collapsible checkbox tree with folder tri-state, at add-time (Quick Add /
+Paste-to-Queue) or anytime from a torrent's detail view. Detail opens as a
+**docked, resizable panel** at the bottom of the window, and a **permanent
+taskbar** lists every open detail session (a download **auto-opens** its detail
+when it starts). Sort the download table on any column.
 
 ![Per-file selection tree](screenshots/filetree.png)
 

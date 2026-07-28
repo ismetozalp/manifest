@@ -160,6 +160,8 @@
                     if (this._persistMinimized) this._persistMinimized();
                 }
             }
+            // Auto-open the detail panel for downloads that just started.
+            if (this._autoOpenActive) this._autoOpenActive();
         },
 
         async _refreshFreeSpace() {
@@ -218,8 +220,30 @@
         },
 
         _sortVal(d, key) {
-            if (key === 'size') return Number(d.totalLength) || 0;
-            return (this.rowName(d) || '').toLowerCase(); // 'name' + fallback
+            switch (key) {
+                case 'size': return Number(d.totalLength) || 0;
+                case 'progress': return this.rowProgress(d);
+                case 'down': return Number(d.downloadSpeed) || 0;
+                case 'up': return Number(d.uploadSpeed) || 0;
+                case 'eta': {
+                    const total = Number(d.totalLength) || 0, done = Number(d.completedLength) || 0;
+                    const spd = Number(d.downloadSpeed) || 0;
+                    if (d.status === 'complete' || total <= done) return -1;   // finished → first (asc)
+                    if (spd <= 0) return Infinity;                             // stalled → last (asc)
+                    return (total - done) / spd;                               // seconds remaining
+                }
+                case 'status': {
+                    const rank = { active: 0, waiting: 1, paused: 2, complete: 3, error: 4 };
+                    const r = rank[d.status];
+                    return r == null ? 9 : r;
+                }
+                default: return (this.rowName(d) || '').toLowerCase();          // name
+            }
+        },
+
+        // Sort-arrow indicator for the active column (empty otherwise).
+        sortInd(key) {
+            return root.ManifestSorting.indicator({ key: this.sortKey, dir: this.sortDir }, key);
         },
 
         sortBy(key) {

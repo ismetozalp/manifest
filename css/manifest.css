@@ -111,8 +111,12 @@ body.mf-col-resizing, body.mf-col-resizing * {
 .mf-min-btn { color: var(--bs-secondary-color); line-height: 1; }
 .mf-min-btn:hover { color: var(--bs-body-color); }
 
-/* Minimized-details taskbar: fixed to the bottom, floating above the modal
-   layer (Bootstrap modal 1055 / backdrop 1050) so chips stay clickable. */
+:root { --mf-taskbar-h: 42px; }
+/* Reserve space so the permanent bottom taskbar never covers page content. */
+body { padding-bottom: var(--mf-taskbar-h); }
+
+/* Detail-session taskbar: permanent, fixed to the very bottom, above the docked
+   detail panel and the modal layer, so chips stay clickable at all times. */
 .mf-taskbar {
     position: fixed;
     left: 0; right: 0; bottom: 0;
@@ -126,8 +130,53 @@ body.mf-col-resizing, body.mf-col-resizing * {
     overflow-x: auto;
     overflow-y: hidden;
     white-space: nowrap;
-    min-height: 38px;
+    height: var(--mf-taskbar-h);
 }
+.mf-taskbar-empty { color: var(--bs-secondary-color); font-size: 12px; font-style: italic; }
+/* the focused session (shown in the panel) is highlighted */
+.mf-taskbar-item.active { border-color: var(--bs-primary); box-shadow: 0 0 0 1px var(--bs-primary) inset; }
+
+/* Docked, resizable detail panel: pinned above the taskbar, full width. */
+.mf-detailpanel {
+    position: fixed;
+    left: 0; right: 0;
+    bottom: var(--mf-taskbar-h);
+    z-index: 1085;
+    background: var(--bs-body-bg);
+    border-top: 1px solid var(--bs-border-color);
+    box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.28);
+    display: flex;
+    flex-direction: column;
+}
+.mf-detail-grip {
+    height: 7px;
+    flex: 0 0 auto;
+    cursor: ns-resize;
+    background: var(--bs-tertiary-bg);
+    border-bottom: 1px solid var(--bs-border-color);
+    position: relative;
+}
+.mf-detail-grip::after {
+    content: "";
+    position: absolute;
+    left: 50%; top: 50%;
+    width: 40px; height: 2px;
+    transform: translate(-50%, -50%);
+    border-radius: 2px;
+    background: var(--bs-border-color);
+}
+.mf-detail-grip:hover::after { background: var(--bs-primary); }
+.mf-detail-inner { flex: 1 1 auto; min-height: 0; }
+.mf-detail-header { border-bottom: 1px solid var(--bs-border-color); }
+body.mf-ns-resizing, body.mf-ns-resizing * { cursor: ns-resize !important; user-select: none !important; }
+
+/* Fixed-layout detail tables (Peers/Trackers): column widths come from the
+   <colgroup>, so a changing speed value can't widen a column and shove the rest. */
+.mf-fixed-table { table-layout: fixed; width: 100%; }
+.mf-fixed-table th, .mf-fixed-table td { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mf-sortable { cursor: pointer; user-select: none; white-space: nowrap; }
+.mf-sortable:hover { color: var(--bs-primary); }
+.mf-sort-ind { font-size: 0.8em; }
 .mf-taskbar-item {
     display: inline-flex;
     align-items: center;

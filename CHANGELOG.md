@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.2.0
+
+### Changed
+- **Detail is now a docked, resizable panel** pinned to the bottom of the window
+  (above the taskbar) instead of a centered modal. Drag the top grip up/down to
+  resize it; the height persists.
+- **The bottom taskbar is permanent** and lists every open detail session as a
+  chip (the one shown in the panel is highlighted). Clicking a chip focuses it;
+  clicking the focused chip collapses the panel; × closes the session.
+
+### Added
+- **Auto-open on start:** when a download begins downloading its detail opens
+  automatically. Several starting at once each get a taskbar chip (all open);
+  closing a session stops it re-opening while that download is still active.
+- **Sortable columns:** the download table now sorts on every column (name,
+  size, progress, ↓, ↑, ETA, status), and the detail **Peers** and **Trackers**
+  tables are sortable too. Click a header to sort; click again to reverse.
+
+### Fixed
+- **Peers/Trackers tables no longer shake:** they use a fixed layout, so a
+  changing speed value can't widen a column and shove the rest sideways (same
+  fix as the main table).
+
 ## 1.1.4
 
 ### Added

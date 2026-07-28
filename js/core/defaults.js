@@ -24,7 +24,8 @@
         // Detail dialogs the user minimized to the bottom taskbar, persisted so
         // they survive a re-login. Each is { gid, name }; entries whose download
         // no longer exists are pruned once downloads are polled (removing is OK).
-        minimizedDetails: []
+        minimizedDetails: [],
+        detailHeight: 50   // docked detail-panel height, in vh
     };
 
     function mergeOne(defaults, loaded) {
@@ -50,7 +51,9 @@
             destinations: mergeOne(DEFAULT_SETTINGS.destinations, loaded.destinations),
             limits: mergeOne(DEFAULT_SETTINGS.limits, loaded.limits),
             update: mergeOne(DEFAULT_SETTINGS.update, loaded.update),
-            minimizedDetails: mergeMinimized(loaded.minimizedDetails)
+            minimizedDetails: mergeMinimized(loaded.minimizedDetails),
+            detailHeight: (Number.isFinite(Number(loaded.detailHeight)) && Number(loaded.detailHeight) > 0)
+                ? Number(loaded.detailHeight) : DEFAULT_SETTINGS.detailHeight
         };
     }
 

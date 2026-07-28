@@ -208,6 +208,18 @@ try {
         const badges = (await app.locator('.mf-row .badge').allInnerTexts().catch(() => [])).join(',');
         check('status badges render (active/complete)', /active/i.test(badges) && /complete/i.test(badges), badges);
 
+        // ---- Sorting the download table on any column (not just name/size) ----
+        const dlSort = await app.evaluate(() => {
+            const d = window.Alpine.$data(document.querySelector('[x-data]'));
+            d.sortBy('down'); d.sortBy('down');                 // asc → desc: fastest first
+            const order = d.visibleDownloads.map(x => Number(x.downloadSpeed) || 0);
+            const ind = d.sortInd('down');
+            return { desc: d.sortDir === 'desc', order, ind, sortedDesc: order.slice().sort((a, b) => b - a) };
+        });
+        check('download table sorts by ↓ speed (desc) with an arrow indicator',
+            dlSort.desc && JSON.stringify(dlSort.order) === JSON.stringify(dlSort.sortedDesc) && /▼/.test(dlSort.ind), JSON.stringify(dlSort));
+        await app.evaluate(() => { const d = window.Alpine.$data(document.querySelector('[x-data]')); d.sortKey = 'name'; d.sortDir = 'asc'; });
+
         // ---- Resizable columns: fixed layout (anti-shake) + grips + drag-persist ----
         const layout = await app.evaluate(() => getComputedStyle(document.querySelector('.mf-table')).tableLayout);
         check('download table uses fixed layout (anti-shake)', layout === 'fixed', `table-layout=${layout}`);
@@ -299,85 +311,122 @@ try {
         await app.evaluate(() => window.Alpine.$data(document.querySelector('[x-data]')).closeContextMenu());
 
         // ---- Detail file-selection tree: collapse, select none/all, tri-state ----
+        // The detail is now a docked panel driven by detail.open (x-show), not a
+        // Bootstrap modal — inject state directly and it renders.
         await app.evaluate(() => {
             const d = window.Alpine.$data(document.querySelector('[x-data]'));
             const files = [{ index: '1', path: '/dl/Show/Sub/a.srt', length: '5', selected: 'true' }, { index: '2', path: '/dl/Show/Sub/b.srt', length: '5', selected: 'true' }, { index: '3', path: '/dl/Show/movie.mkv', length: '900', selected: 'true' }, { index: '4', path: '/dl/Show/junk.txt', length: '9', selected: 'false' }];
-            d.detail = { open: true, gid: 'x', tab: 'files', data: {}, peers: [], trackers: [], files: files.map(f => ({ index: Number(f.index), path: f.path, length: Number(f.length), completedLength: 0, selected: f.selected !== 'false' })), fileTree: window.ManifestFileTree.build(files).nodes, selectedIndices: new Set([1, 2, 3]), collapsed: new Set(), _selGid: 'x', loading: false, error: '' };
-            bootstrap.Modal.getOrCreateInstance(d.detailModalEl).show();
+            d.detail = { open: true, gid: 'x', tab: 'files', data: {}, peers: [], trackers: [], files: files.map(f => ({ index: Number(f.index), path: f.path, length: Number(f.length), completedLength: 0, selected: f.selected !== 'false' })), fileTree: window.ManifestFileTree.build(files).nodes, selectedIndices: new Set([1, 2, 3]), collapsed: new Set(), _selGid: 'x', loading: false, error: '', peerSort: null, trackerSort: null };
         });
-        await page.waitForTimeout(400);
+        await page.waitForTimeout(300);
+        check('detail panel is docked (not a centered modal)', await app.evaluate(() => document.querySelector('#mfDetail').classList.contains('mf-detailpanel')));
         const treeRows = await app.locator('#mfDetail .mf-tree-row').count();
         check('detail file tree renders (folder + files)', treeRows >= 4, `rows=${treeRows}`);
         const guides = await app.locator('#mfDetail .mf-tree-guide').count();
         check('tree has indent guide-lines (nested items)', guides >= 1, `guides=${guides}`);
-        // collapse the Sub folder -> fewer rows (no changeOption calls, pure UI)
         await app.evaluate(() => window.Alpine.$data(document.querySelector('[x-data]')).detailToggleFolder('/Sub'));
         await page.waitForTimeout(150);
         const collapsed = await app.locator('#mfDetail .mf-tree-row').count();
         check('collapsing a folder hides its children', collapsed < treeRows, `${treeRows}→${collapsed}`);
-        // folder tri-state helper (no RPC): some vs all vs none
         const tri = await app.evaluate(() => {
             const d = window.Alpine.$data(document.querySelector('[x-data]'));
             const sub = d.detail.fileTree.find(n => n.dir);
-            const all = window.ManifestFileTree.folderState(sub, new Set(sub.indices));
-            const some = window.ManifestFileTree.folderState(sub, new Set([sub.indices[0]]));
-            const none = window.ManifestFileTree.folderState(sub, new Set());
-            return { all, some, none };
+            return { all: window.ManifestFileTree.folderState(sub, new Set(sub.indices)), some: window.ManifestFileTree.folderState(sub, new Set([sub.indices[0]])), none: window.ManifestFileTree.folderState(sub, new Set()) };
         });
         check('folder tri-state is all/some/none', tri.all === 'all' && tri.some === 'some' && tri.none === 'none', JSON.stringify(tri));
 
-        // ---- General tab: percent centered ON the progress bar (v1.1 fix) ----
+        // ---- General tab: percent centered ON the progress bar ----
         await app.evaluate(() => {
             const d = window.Alpine.$data(document.querySelector('[x-data]'));
-            // Point the open detail at a real row ('b') so restore-from-taskbar can reopen it.
             d.detail.gid = 'b';
             d.detail.data = { gid: 'b', status: 'active', completedLength: '400000000', totalLength: '1000000000', downloadSpeed: '6500000', uploadSpeed: '0', bittorrent: { info: { name: 'Test Torrent 2160p' } }, files: [{ path: '/dl/Test Torrent 2160p/movie.mkv' }] };
-            d.detailSwitchTab('general');
+            d.detail.tab = 'general';
         });
-        await page.waitForTimeout(200);
-        const genPct = await app.evaluate(() => {
-            const bar = document.querySelector('#mfDetail .progress');
-            const pct = bar && bar.querySelector('.mf-row-pct');
-            return { onBar: !!pct, text: pct ? pct.textContent.trim() : '' };
-        });
+        await page.waitForTimeout(150);
+        const genPct = await app.evaluate(() => { const b = document.querySelector('#mfDetail .progress'); const p = b && b.querySelector('.mf-row-pct'); return { onBar: !!p, text: p ? p.textContent.trim() : '' }; });
         check('General tab shows percent ON the progress bar (not below it)', genPct.onBar && /40%/.test(genPct.text), JSON.stringify(genPct));
 
-        // ---- Minimize detail → bottom taskbar → restore (v1.1 item 4) ----
+        // ---- Peers tab: fixed layout (anti-shake) + sortable columns ----
+        await app.evaluate(() => {
+            const d = window.Alpine.$data(document.querySelector('[x-data]'));
+            d.detail.peers = [
+                { ip: '10.0.0.9', port: 1, client: 'qBittorrent 5.1', downloadSpeed: 500000, uploadSpeed: 0, seeder: true, progress: 100 },
+                { ip: '103.7.49.179', port: 2, client: 'Transmission', downloadSpeed: 9000000, uploadSpeed: 100, seeder: false, progress: 15 },
+                { ip: '9.9.9.9', port: 3, client: 'Deluge', downloadSpeed: 3000, uploadSpeed: 0, seeder: false, progress: 42 },
+            ];
+            d.detail.tab = 'peers';
+        });
+        await page.waitForTimeout(150);
+        check('Peers table uses fixed layout (anti-shake)', await app.evaluate(() => getComputedStyle(document.querySelector('#mfDetail .mf-fixed-table')).tableLayout) === 'fixed');
+        // sort by ↓ speed descending → fastest first
+        const peerSort = await app.evaluate(() => {
+            const d = window.Alpine.$data(document.querySelector('[x-data]'));
+            d.detailSortPeers('down'); d.detailSortPeers('down');   // asc → desc
+            return { dir: d.detail.peerSort.dir, order: d.detailPeersSorted.map(p => p.downloadSpeed) };
+        });
+        check('Peers sort by ↓ (desc) orders fastest-first', peerSort.dir === 'desc' && JSON.stringify(peerSort.order) === JSON.stringify([9000000, 500000, 3000]), JSON.stringify(peerSort));
+        // sort by address ascending → IPv4 numeric order (9.9.9.9 < 10.x < 103.x)
+        const ipSort = await app.evaluate(() => {
+            const d = window.Alpine.$data(document.querySelector('[x-data]'));
+            d.detailSortPeers('ip');   // asc
+            return d.detailPeersSorted.map(p => p.ip);
+        });
+        check('Peers sort by address is numeric (9 < 10 < 103)', JSON.stringify(ipSort) === JSON.stringify(['9.9.9.9', '10.0.0.9', '103.7.49.179']), JSON.stringify(ipSort));
+
+        // ---- Docked panel resize (drag the grip changes detailHeight) ----
+        const resize = await app.evaluate(() => {
+            const d = window.Alpine.$data(document.querySelector('[x-data]'));
+            const grip = document.querySelector('#mfDetail .mf-detail-grip');
+            const r = grip.getBoundingClientRect();
+            const startH = d.detailHeight;
+            const opts = (y) => ({ bubbles: true, cancelable: true, clientX: r.left + 5, clientY: y });
+            grip.dispatchEvent(new MouseEvent('mousedown', opts(r.top + 3)));
+            document.dispatchEvent(new MouseEvent('mousemove', opts(r.top - 120)));  // drag up → taller
+            document.dispatchEvent(new MouseEvent('mouseup', opts(r.top - 120)));
+            return { startH, endH: d.detailHeight, persisted: d.settings.detailHeight };
+        });
+        check('dragging the panel grip resizes it (taller) and persists', resize.endH > resize.startH && resize.persisted === resize.endH, JSON.stringify(resize));
+
+        // ---- Minimize → chip stays → restore (real openDetail session flow) ----
+        await app.evaluate(() => { const d = window.Alpine.$data(document.querySelector('[x-data]')); d.minimizedDetails = []; d.detail.open = false; d.openDetail(d.downloads['b']); });
+        await page.waitForTimeout(150);
         await app.evaluate(() => window.Alpine.$data(document.querySelector('[x-data]')).minimizeDetail());
-        await page.waitForTimeout(400);
-        const min = await app.evaluate(() => {
-            const d = window.Alpine.$data(document.querySelector('[x-data]'));
-            return { count: d.minimizedDetails.length, name: (d.minimizedDetails[0] || {}).name, modalShown: document.querySelector('#mfDetail').classList.contains('show') };
-        });
-        check('minimize hides the modal and adds a taskbar chip', min.count === 1 && !min.modalShown, JSON.stringify(min));
-        check('taskbar chip is visible with the download name', await app.locator('.mf-taskbar .mf-taskbar-item').isVisible() && /Test Torrent/.test(min.name || ''));
-        // persisted to settings so it survives a re-login (settings.minimizedDetails)
-        const persistedMin = await app.evaluate(() => window.Alpine.$data(document.querySelector('[x-data]')).settings.minimizedDetails.map((m) => m.gid));
-        check('minimized chip is persisted to settings (survives re-login)', JSON.stringify(persistedMin) === JSON.stringify(['b']), JSON.stringify(persistedMin));
-        // stale chip (download no longer exists) is pruned + de-persisted on the next merge
-        const stalePrune = await app.evaluate(() => {
-            const d = window.Alpine.$data(document.querySelector('[x-data]'));
-            d.minimizedDetails = [{ gid: 'GONE', name: 'Removed directly' }, { gid: 'b', name: 'Kept' }];
-            d.settings.minimizedDetails = d.minimizedDetails.map((m) => ({ gid: m.gid, name: m.name }));
-            d._mergeDownloads(Object.values(d.downloads));   // re-merge existing rows; 'GONE' isn't among them
-            return { chips: d.minimizedDetails.map((m) => m.gid), persisted: d.settings.minimizedDetails.map((m) => m.gid) };
-        });
-        check('stale minimized chip (download removed) is pruned + de-persisted',
-            JSON.stringify(stalePrune.chips) === JSON.stringify(['b']) && JSON.stringify(stalePrune.persisted) === JSON.stringify(['b']), JSON.stringify(stalePrune));
-        // ensure a single 'b' chip is present for the restore-click check below
-        await app.evaluate(() => { window.Alpine.$data(document.querySelector('[x-data]')).minimizedDetails = [{ gid: 'b', name: 'Test Torrent 2160p' }]; });
-        await page.waitForTimeout(100);
+        await page.waitForTimeout(150);
+        const min = await app.evaluate(() => { const d = window.Alpine.$data(document.querySelector('[x-data]')); return { open: d.detail.open, chips: d.minimizedDetails.map(m => m.gid), name: (d.minimizedDetails[0] || {}).name, panelVisible: getComputedStyle(document.querySelector('#mfDetail')).display !== 'none' }; });
+        check('minimize collapses the panel but keeps the taskbar chip', min.open === false && JSON.stringify(min.chips) === JSON.stringify(['b']) && !min.panelVisible, JSON.stringify(min));
+        check('taskbar is permanent and shows the chip with the download name', await app.locator('.mf-taskbar .mf-taskbar-item').isVisible() && /Sintel/.test(min.name || ''), min.name);
+        check('minimized chip persisted to settings (survives re-login)', JSON.stringify(await app.evaluate(() => window.Alpine.$data(document.querySelector('[x-data]')).settings.minimizedDetails.map(m => m.gid))) === JSON.stringify(['b']));
         // restore by clicking the chip
         await app.locator('.mf-taskbar .mf-taskbar-item').first().click();
-        await app.locator('#mfDetail.show').waitFor({ timeout: 4000 }).catch(() => {});
-        const restored = await app.evaluate(() => {
-            const d = window.Alpine.$data(document.querySelector('[x-data]'));
-            return { minCount: d.minimizedDetails.length, modalShown: document.querySelector('#mfDetail').classList.contains('show') };
-        });
-        check('clicking the chip restores the modal and clears the chip', restored.modalShown && restored.minCount === 0, JSON.stringify(restored));
+        await page.waitForTimeout(150);
+        check('clicking the chip re-opens the panel', await app.evaluate(() => window.Alpine.$data(document.querySelector('[x-data]')).detail.open === true));
 
-        await app.evaluate(() => { const d = window.Alpine.$data(document.querySelector('[x-data]')); bootstrap.Modal.getOrCreateInstance(d.detailModalEl).hide(); d.detail.open = false; });
-        await page.waitForTimeout(300);
+        // ---- Stale chip (download removed) pruned + de-persisted on next merge ----
+        const stalePrune = await app.evaluate(() => {
+            const d = window.Alpine.$data(document.querySelector('[x-data]'));
+            // seed the auto-open "seen" set so the merge below doesn't also
+            // auto-open the injected active rows (that path is tested separately)
+            d._autoOpenPrimed = true; d._autoSeen = new Set(Object.keys(d.downloads));
+            d.minimizedDetails = [{ gid: 'GONE', name: 'Removed directly' }, { gid: 'b', name: 'Kept' }];
+            d.settings.minimizedDetails = d.minimizedDetails.map(m => ({ gid: m.gid, name: m.name }));
+            d._mergeDownloads(Object.values(d.downloads));
+            return { chips: d.minimizedDetails.map(m => m.gid), persisted: d.settings.minimizedDetails.map(m => m.gid) };
+        });
+        check('stale minimized chip (download removed) is pruned + de-persisted', JSON.stringify(stalePrune.chips) === JSON.stringify(['b']) && JSON.stringify(stalePrune.persisted) === JSON.stringify(['b']), JSON.stringify(stalePrune));
+
+        // ---- Auto-open: a newly-started download opens the panel + adds a chip ----
+        const autoOpen = await app.evaluate(() => {
+            const d = window.Alpine.$data(document.querySelector('[x-data]'));
+            d._autoOpenPrimed = true; d._autoSeen = new Set(Object.keys(d.downloads)); d._dismissedDetails = new Set();
+            d.minimizedDetails = []; d.detail.open = false;
+            d.downloads = Object.assign({}, d.downloads, { NEWDL: { gid: 'NEWDL', status: 'active', totalLength: '100', completedLength: '1', downloadSpeed: '5', uploadSpeed: '0', files: [{ path: '/dl/new.iso' }] } });
+            d._autoOpenActive();
+            return { open: d.detail.open, gid: d.detail.gid, chips: d.minimizedDetails.map(m => m.gid) };
+        });
+        check('a newly-started download auto-opens the panel + adds a chip', autoOpen.open === true && autoOpen.gid === 'NEWDL' && autoOpen.chips.includes('NEWDL'), JSON.stringify(autoOpen));
+
+        await app.evaluate(() => { const d = window.Alpine.$data(document.querySelector('[x-data]')); d.detail.open = false; d.minimizedDetails = []; delete d.downloads['NEWDL']; });
+        await page.waitForTimeout(200);
 
         // ---- Details button in the selection bar when exactly one row is selected (item 2) ----
         await app.evaluate(() => { const d = window.Alpine.$data(document.querySelector('[x-data]')); d.selection = new Set(['b']); });

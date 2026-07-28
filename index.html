@@ -129,13 +129,13 @@
                 <span class="mf-col-grip" title="Drag to resize" @mousedown="startColResize($event, 0)"></span>
             </th>
             <th><span class="mf-col-grip" title="Drag to resize" @mousedown="startColResize($event, 1)"></span></th>
-            <th @click="sortBy('name')">Name<span class="mf-col-grip" title="Drag to resize" @mousedown="startColResize($event, 2)"></span></th>
-            <th @click="sortBy('size')">Size<span class="mf-col-grip" title="Drag to resize" @mousedown="startColResize($event, 3)"></span></th>
-            <th>Progress<span class="mf-col-grip" title="Drag to resize" @mousedown="startColResize($event, 4)"></span></th>
-            <th>↓<span class="mf-col-grip" title="Drag to resize" @mousedown="startColResize($event, 5)"></span></th>
-            <th>↑<span class="mf-col-grip" title="Drag to resize" @mousedown="startColResize($event, 6)"></span></th>
-            <th>ETA<span class="mf-col-grip" title="Drag to resize" @mousedown="startColResize($event, 7)"></span></th>
-            <th>Status<span class="mf-col-grip" title="Drag to resize" @mousedown="startColResize($event, 8)"></span></th>
+            <th class="mf-sortable" @click="sortBy('name')">Name<span class="mf-sort-ind" x-text="sortInd('name')"></span><span class="mf-col-grip" title="Drag to resize" @mousedown="startColResize($event, 2)"></span></th>
+            <th class="mf-sortable" @click="sortBy('size')">Size<span class="mf-sort-ind" x-text="sortInd('size')"></span><span class="mf-col-grip" title="Drag to resize" @mousedown="startColResize($event, 3)"></span></th>
+            <th class="mf-sortable" @click="sortBy('progress')">Progress<span class="mf-sort-ind" x-text="sortInd('progress')"></span><span class="mf-col-grip" title="Drag to resize" @mousedown="startColResize($event, 4)"></span></th>
+            <th class="mf-sortable" @click="sortBy('down')">↓<span class="mf-sort-ind" x-text="sortInd('down')"></span><span class="mf-col-grip" title="Drag to resize" @mousedown="startColResize($event, 5)"></span></th>
+            <th class="mf-sortable" @click="sortBy('up')">↑<span class="mf-sort-ind" x-text="sortInd('up')"></span><span class="mf-col-grip" title="Drag to resize" @mousedown="startColResize($event, 6)"></span></th>
+            <th class="mf-sortable" @click="sortBy('eta')">ETA<span class="mf-sort-ind" x-text="sortInd('eta')"></span><span class="mf-col-grip" title="Drag to resize" @mousedown="startColResize($event, 7)"></span></th>
+            <th class="mf-sortable" @click="sortBy('status')">Status<span class="mf-sort-ind" x-text="sortInd('status')"></span><span class="mf-col-grip" title="Drag to resize" @mousedown="startColResize($event, 8)"></span></th>
             <th></th>
         </tr></thead>
         <tbody>
@@ -212,9 +212,11 @@
 <!-- MINIMIZED-DETAILS TASKBAR: fixed bottom bar of minimized detail dialogs.
      Floats above the modal layer so it stays clickable; click a chip to restore
      the dialog, × to dismiss it. -->
-<div class="mf-taskbar" x-cloak x-show="minimizedDetails.length > 0">
+<div class="mf-taskbar" x-cloak x-show="svc.active">
+    <span class="mf-taskbar-empty" x-show="!minimizedDetails.length">No open details</span>
     <template x-for="m in minimizedDetails" :key="m.gid">
-        <div class="mf-taskbar-item" @click="restoreDetail(m.gid)" :title="m.name">
+        <div class="mf-taskbar-item" :class="{ active: detail.open && detail.gid === m.gid }"
+             @click="restoreDetail(m.gid)" :title="m.name">
             <span class="mf-taskbar-ico">🗔</span>
             <span class="mf-taskbar-label" x-text="m.name"></span>
             <button type="button" class="mf-taskbar-close" title="Close" @click.stop="closeMinimized(m.gid)">✕</button>
@@ -245,6 +247,7 @@
 <script src="js/core/installcmd.js"></script>
 <script src="js/core/columns.js"></script>
 <script src="js/core/selection.js"></script>
+<script src="js/core/sorting.js"></script>
 <script src="js/core/defaults.js"></script>
 <script src="js/js-yaml.min.js"></script>
 <script src="js/fs.js"></script>

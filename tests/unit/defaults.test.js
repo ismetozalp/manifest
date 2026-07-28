@@ -62,6 +62,15 @@ test('minimizedDetails: non-array → empty; strips extra fields to {gid,name}',
     assert.deepEqual(D.mergeSettings({ minimizedDetails: [{ gid: 'g', name: 'n', extra: 1 }] }).minimizedDetails,
         [{ gid: 'g', name: 'n' }]);
 });
+
+test('detailHeight: defaults to 50, accepts a positive number, rejects junk', () => {
+    assert.equal(D.DEFAULT_SETTINGS.detailHeight, 50);
+    assert.equal(D.mergeSettings({}).detailHeight, 50);
+    assert.equal(D.mergeSettings({ detailHeight: 72 }).detailHeight, 72);
+    assert.equal(D.mergeSettings({ detailHeight: 0 }).detailHeight, 50);      // non-positive → default
+    assert.equal(D.mergeSettings({ detailHeight: 'big' }).detailHeight, 50);  // non-numeric → default
+    assert.equal(D.mergeSettings({ detailHeight: null }).detailHeight, 50);
+});
 test('toAria2GlobalOptions maps + clamps + formats speeds', () => {
     const o = D.toAria2GlobalOptions(D.mergeSettings({
         limits: { maxConnectionsPerServer: 99, downloadLimitKiB: 500, minSplitSizeMiB: 20 }

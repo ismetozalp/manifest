@@ -55,6 +55,14 @@ try {
     // decide whether to run the service-gated table/detail section.
     await app.evaluate(async () => { const d = window.Alpine.$data(document.querySelector('[x-data]')); for (let i = 0; i < 40 && d.svc.state === 'unknown'; i++) await new Promise(r => setTimeout(r, 300)); });
     const svcActive = await app.evaluate(() => window.Alpine.$data(document.querySelector('[x-data]')).svc.active);
+    // The docked detail panel must not be open on load — unless a real download
+    // is actively downloading (which legitimately auto-opens it in this live env).
+    const loadState = await app.evaluate(() => {
+        const d = window.Alpine.$data(document.querySelector('[x-data]'));
+        const downloading = Object.values(d.downloads).some((x) => x.status === 'active' && (Number(x.completedLength) || 0) < (Number(x.totalLength) || 0));
+        return { open: d.detail.open, downloading };
+    });
+    check('detail panel is closed on load (no stale empty panel)', loadState.open === false || loadState.downloading, JSON.stringify(loadState));
 
     // ---- Setup-log dismiss ----
     await app.evaluate(() => { const d = window.Alpine.$data(document.querySelector('[x-data]')); d.svc.log = 'test setup log line'; });

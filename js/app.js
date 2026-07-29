@@ -117,6 +117,11 @@ document.addEventListener('alpine:init', () => {
             // Restore detail chips the user had minimized to the taskbar last
             // session; stale ones are pruned once downloads are polled.
             try { this._restoreMinimized(); } catch (e) {}
+            // Never start with the detail panel open: it opens only on an
+            // explicit action or auto-open (a download that's actively
+            // downloading), never on load. Guards against any leftover/soft-nav
+            // state showing a stale empty panel on refresh.
+            try { this.detail.open = false; this._detailStopPoll && this._detailStopPoll(); } catch (e) {}
             try { await this._maybeCheckUpdateOnStartup(); } catch (e) { console.error('[manifest] startup update check failed:', e); }
             try { await this._refreshServiceState(); } catch (e) { console.error('[manifest] initial service state check failed:', e); }
             this._startServicePoll();

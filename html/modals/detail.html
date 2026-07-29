@@ -6,8 +6,11 @@
 
 <!-- Panel is visible only when it's open AND actually points at a live download,
      so a stale/empty session can never render an empty panel. -->
+<!-- :style MUST be object syntax, not a string: a string :style overwrites the
+     whole inline style and wipes out the display:none that x-show sets, leaving
+     the panel permanently visible (the "empty panel always showing" bug). -->
 <div id="mfDetail" class="mf-detailpanel" x-cloak x-show="detail.open && detail.gid && downloads[detail.gid]" x-data
-     x-init="detailModalEl = $el" :style="'height:' + detailHeight + 'vh'">
+     x-init="detailModalEl = $el" :style="{ height: detailHeight + 'vh' }">
     <!-- resize grip: drag up/down to change the panel height -->
     <div class="mf-detail-grip" title="Drag to resize" @mousedown="startDetailResize($event)"></div>
     <div class="mf-detail-inner d-flex flex-column">

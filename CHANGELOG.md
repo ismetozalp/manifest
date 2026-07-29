@@ -22,9 +22,12 @@
 - **Peers/Trackers tables no longer shake:** they use a fixed layout, so a
   changing speed value can't widen a column and shove the rest sideways (same
   fix as the main table).
-- **No more stuck empty detail panel:** if the download a panel is showing
-  disappears (removed, or aria2 reassigns gids on restart), the panel now
-  closes automatically instead of sitting open with empty data.
+- **Detail panel no longer permanently visible / empty on start.** The panel's
+  height binding used a string `:style`, which overwrote the inline `display:none`
+  that `x-show` sets — so the panel rendered even when closed, showing empty data
+  on load. Switched to object `:style` so `x-show` and the height coexist. (Plus
+  it auto-closes when its download disappears, and only renders when it points at
+  a live download.)
 - **Modals sit above the dock:** the docked detail panel and the taskbar now
   render below the modal layer, so Quick Add / Paste / Settings are no longer
   covered by the panel.

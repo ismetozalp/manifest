@@ -336,7 +336,7 @@ try {
         await app.evaluate(() => {
             const d = window.Alpine.$data(document.querySelector('[x-data]'));
             const files = [{ index: '1', path: '/dl/Show/Sub/a.srt', length: '5', selected: 'true' }, { index: '2', path: '/dl/Show/Sub/b.srt', length: '5', selected: 'true' }, { index: '3', path: '/dl/Show/movie.mkv', length: '900', selected: 'true' }, { index: '4', path: '/dl/Show/junk.txt', length: '9', selected: 'false' }];
-            d.detail = { open: true, gid: 'x', tab: 'files', data: {}, peers: [], trackers: [], files: files.map(f => ({ index: Number(f.index), path: f.path, length: Number(f.length), completedLength: 0, selected: f.selected !== 'false' })), fileTree: window.ManifestFileTree.build(files).nodes, selectedIndices: new Set([1, 2, 3]), collapsed: new Set(), _selGid: 'x', loading: false, error: '', peerSort: null, trackerSort: null };
+            d.detail = { open: true, gid: 'b', tab: 'files', data: {}, peers: [], trackers: [], files: files.map(f => ({ index: Number(f.index), path: f.path, length: Number(f.length), completedLength: 0, selected: f.selected !== 'false' })), fileTree: window.ManifestFileTree.build(files).nodes, selectedIndices: new Set([1, 2, 3]), collapsed: new Set(), _selGid: 'b', loading: false, error: '', peerSort: null, trackerSort: null };
         });
         await page.waitForTimeout(300);
         check('detail panel is docked (not a centered modal)', await app.evaluate(() => document.querySelector('#mfDetail').classList.contains('mf-detailpanel')));

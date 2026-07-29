@@ -4,7 +4,9 @@
      shows the focused session, while the taskbar lists every open session.
      Injected into #manifest-partials by boot.js before Alpine starts. -->
 
-<div id="mfDetail" class="mf-detailpanel" x-cloak x-show="detail.open" x-data
+<!-- Panel is visible only when it's open AND actually points at a live download,
+     so a stale/empty session can never render an empty panel. -->
+<div id="mfDetail" class="mf-detailpanel" x-cloak x-show="detail.open && detail.gid && downloads[detail.gid]" x-data
      x-init="detailModalEl = $el" :style="'height:' + detailHeight + 'vh'">
     <!-- resize grip: drag up/down to change the panel height -->
     <div class="mf-detail-grip" title="Drag to resize" @mousedown="startDetailResize($event)"></div>

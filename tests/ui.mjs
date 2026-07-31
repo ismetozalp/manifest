@@ -368,6 +368,18 @@ try {
         const genPct = await app.evaluate(() => { const b = document.querySelector('#mfDetail .progress'); const p = b && b.querySelector('.mf-row-pct'); return { onBar: !!p, text: p ? p.textContent.trim() : '' }; });
         check('General tab shows percent ON the progress bar (not below it)', genPct.onBar && /40%/.test(genPct.text), JSON.stringify(genPct));
 
+        // ---- Tab switch shows a loading indicator (no frozen blank tab) ----
+        const switchLoading = await app.evaluate(() => {
+            const d = window.Alpine.$data(document.querySelector('[x-data]'));
+            d.detail.tab = 'general';
+            d.detailSwitchTab('trackers');   // switch → loading set synchronously
+            return { loadingNow: d.detail.loading, overlayInDom: !!document.querySelector('#mfDetail .mf-detail-loading') };
+        });
+        check('switching a detail tab shows a loading indicator', switchLoading.loadingNow === true && switchLoading.overlayInDom, JSON.stringify(switchLoading));
+        await page.waitForTimeout(200);
+        check('loading indicator clears after the tab fetch settles', await app.evaluate(() => window.Alpine.$data(document.querySelector('[x-data]')).detail.loading === false));
+        await app.evaluate(() => { window.Alpine.$data(document.querySelector('[x-data]')).detail.tab = 'general'; });
+
         // ---- Peers tab: fixed layout (anti-shake) + sortable columns ----
         await app.evaluate(() => {
             const d = window.Alpine.$data(document.querySelector('[x-data]'));

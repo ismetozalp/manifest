@@ -257,7 +257,11 @@
         detailSwitchTab(tab) {
             if (this.detail.tab === tab) return;
             this.detail.tab = tab;
-            this._detailFetchActiveTab();
+            // Show a loading indicator ONLY for the explicit switch (the routine
+            // ~1.5s poll fetches silently, so the spinner doesn't flicker). A
+            // slow getPeers/getFiles no longer looks frozen.
+            this.detail.loading = true;
+            this._detailFetchActiveTab().finally(() => { this.detail.loading = false; });
         },
 
         // ── Poll lifecycle (detail-scoped, tab-scoped, pauses on close/hidden) ──

@@ -170,6 +170,17 @@ body { padding-bottom: var(--mf-taskbar-h); }
 .mf-detail-grip:hover::after { background: var(--bs-primary); }
 .mf-detail-inner { flex: 1 1 auto; min-height: 0; }
 .mf-detail-header { border-bottom: 1px solid var(--bs-border-color); }
+/* tab-switch loading overlay: a spinner over the (stale) tab content */
+.mf-detail-loading {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 2.5rem;
+    background: color-mix(in srgb, var(--bs-body-bg) 65%, transparent);
+}
 body.mf-ns-resizing, body.mf-ns-resizing * { cursor: ns-resize !important; user-select: none !important; }
 
 /* Fixed-layout detail tables (Peers/Trackers): column widths come from the

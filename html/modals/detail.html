@@ -48,7 +48,12 @@
                 </li>
             </ul>
 
-            <div class="tab-content mt-3">
+            <div class="tab-content mt-3 position-relative">
+                <!-- loading overlay while a tab-switch fetch is in flight -->
+                <div class="mf-detail-loading" x-show="detail.loading" x-cloak>
+                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                    <span class="ms-2 text-body-secondary">Loading…</span>
+                </div>
                 <!-- General -->
                 <div x-show="detail.tab==='general'">
                     <dl class="row mb-0 small">

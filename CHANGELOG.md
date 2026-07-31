@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.1
+
+### Fixed
+- Switching detail tabs (Files/Peers/Trackers) now shows a **loading spinner**
+  while the fetch is in flight, so a slow `getPeers`/`getFiles` no longer looks
+  frozen with a blank/stale tab. The indicator only appears on an explicit tab
+  switch — the routine ~1.5s poll refresh stays silent (no flicker).
+
 ## 1.2.0
 
 ### Changed

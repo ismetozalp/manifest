@@ -63,6 +63,15 @@ test('minimizedDetails: non-array → empty; strips extra fields to {gid,name}',
         [{ gid: 'g', name: 'n' }]);
 });
 
+test('notifications: defaults off; coerced to a boolean', () => {
+    assert.equal(D.DEFAULT_SETTINGS.notifications, false);
+    assert.equal(D.mergeSettings({}).notifications, false);
+    assert.equal(D.mergeSettings({ notifications: true }).notifications, true);
+    assert.equal(D.mergeSettings({ notifications: 1 }).notifications, true);
+    assert.equal(D.mergeSettings({ notifications: 0 }).notifications, false);
+    assert.equal(D.mergeSettings({ notifications: 'yes' }).notifications, true);
+});
+
 test('detailHeight: defaults to 50, accepts a positive number, rejects junk', () => {
     assert.equal(D.DEFAULT_SETTINGS.detailHeight, 50);
     assert.equal(D.mergeSettings({}).detailHeight, 50);

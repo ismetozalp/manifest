@@ -160,6 +160,30 @@
         async bulkRemove() { await this._removeTargets(this.selectedRows); },
         async bulkRemoveAndDelete() { await this._removeAndDeleteTargets(this.selectedRows); },
 
+        // ── Global one-click actions (the toolbar) ──
+        async pauseAll() {
+            try { await this.rpc.pauseAll(); this._poll && this._poll(); }
+            catch (e) { this.toast('Pause all failed: ' + (e.message || e), 'danger'); }
+        },
+        async resumeAll() {
+            try { await this.rpc.unpauseAll(); this._poll && this._poll(); }
+            catch (e) { this.toast('Resume all failed: ' + (e.message || e), 'danger'); }
+        },
+        // Clear completed/errored entries from the list (files on disk are kept).
+        async purgeCompleted() {
+            const done = Object.values(this.downloads).filter((d) => d.status === 'complete' || d.status === 'error').length;
+            if (!done) { this.toast('Nothing to clear.', 'info'); return; }
+            const ok = await this.confirmDialog('Clear finished', 'Remove ' + done + ' finished/errored ' + (done === 1 ? 'entry' : 'entries') + ' from the list? Files on disk are kept.');
+            if (!ok) return;
+            try {
+                await this.rpc.purgeDownloadResult();
+                for (const gid of Object.keys(this.downloads)) {
+                    const s = this.downloads[gid].status;
+                    if (s === 'complete' || s === 'error') delete this.downloads[gid];
+                }
+            } catch (e) { this.toast('Clear finished failed: ' + (e.message || e), 'danger'); }
+        },
+
         // Re-adds an errored/stopped download's original URIs as a fresh
         // download, then clears the old (errored) entry out of aria2's
         // stopped-results list so it doesn't linger duplicated in the table.

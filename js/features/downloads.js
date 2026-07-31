@@ -46,6 +46,7 @@
         _pollExtraDelayMs: 0,
         _freeSpaceAt: 0,
         _freeSpaceText: '',
+        _notifySnapshot: null,
         globalStat: {},
 
         startPolling() {
@@ -170,6 +171,23 @@
             }
             // Auto-open the detail panel for downloads that just started.
             if (this._autoOpenActive) this._autoOpenActive();
+            // Desktop notifications on completion/error (opt-in). Snapshot every
+            // poll so enabling mid-session can't retroactively announce old ones.
+            if (root.ManifestNotify) {
+                const snap = root.ManifestNotify.snapshot(this.downloads, (d) => this.rowName(d));
+                if (this.settings && this.settings.notifications && this._notifySnapshot) {
+                    for (const f of root.ManifestNotify.newlyFinished(this._notifySnapshot, snap)) this._notify(f);
+                }
+                this._notifySnapshot = snap;
+            }
+        },
+
+        _notify(f) {
+            try {
+                if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+                const title = f.status === 'error' ? 'Download failed' : 'Download complete';
+                new Notification('Manifest — ' + title, { body: f.name, tag: 'manifest-' + f.gid });
+            } catch (e) { /* notifications unavailable in this context */ }
         },
 
         async _refreshFreeSpace() {

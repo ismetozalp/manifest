@@ -1,5 +1,25 @@
 # Changelog
 
+## 2.0.0
+
+Feature parity pass inspired by webui-aria2.
+
+### Added
+- **Full aria2 global-options editor.** Settings → *Advanced — all aria2
+  options* loads every current global option into a searchable, editable list
+  and applies only the ones you changed (live, via `changeGlobalOption`).
+- **Per-download options.** A new **Options** tab in the detail panel changes a
+  single download's connections/server, split, max-peers, and ↓/↑ speed limits
+  live (`changeOption`).
+- **One-click global actions.** A toolbar on the filter row: **Pause all**,
+  **Resume all**, and **Clear finished** (purges completed/errored entries from
+  the list; files on disk are kept).
+- **Add-time options.** Quick Add has an *Advanced options* section — set
+  connections/server, split, max download speed, and an output filename per add.
+- **Desktop notifications.** Opt-in (Settings → Notifications) browser
+  notifications when a download completes or fails. Only fires on an actual
+  transition, so a reload never re-announces old completions.
+
 ## 1.2.1
 
 ### Fixed

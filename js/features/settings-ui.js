@@ -25,9 +25,37 @@
         settingsModalEl: null,
         _applyLimitsTimer: null,
         _applyPortBusy: false,
+        // Advanced all-aria2-options editor state
+        advOpen: false,
+        advFilter: '',
+        advOptions: {},
+        advOptionsOrig: {},
 
         openSettings() {
             bootstrap.Modal.getOrCreateInstance(this.settingsModalEl).show();
+        },
+
+        // ── Advanced global-options editor (every aria2 option) ──
+        get advKeys() { return Object.keys(this.advOptions || {}).sort(); },
+        async loadAdvOptions() {
+            if (!this.rpc) { this.toast('aria2 is not running.', 'danger'); return; }
+            try {
+                const o = await this.rpc.getGlobalOption();
+                this.advOptions = Object.assign({}, o);
+                this.advOptionsOrig = Object.assign({}, o);
+                this.advFilter = '';
+                this.advOpen = true;
+            } catch (e) { this.toast('Could not load aria2 options: ' + (e.message || e), 'danger'); }
+        },
+        async applyAdvOptions() {
+            const changed = root.ManifestOptDiff.changedOptions(this.advOptionsOrig, this.advOptions);
+            const n = Object.keys(changed).length;
+            if (!n) { this.toast('No changes to apply.', 'info'); return; }
+            try {
+                await this.rpc.changeGlobalOption(changed);
+                this.advOptionsOrig = Object.assign({}, this.advOptions);
+                this.toast('Applied ' + n + ' option' + (n === 1 ? '' : 's') + '.', 'success');
+            } catch (e) { this.toast('Apply failed: ' + (e.message || e), 'danger'); }
         },
 
         // Live preview immediately, then persist right away (not debounced):
@@ -36,6 +64,18 @@
         setTheme(id) {
             this.settings.theme = id;
             if (typeof this.applyTheme === 'function') this.applyTheme();
+            this.saveSettingsImmediate();
+        },
+
+        // Toggling desktop notifications on requests browser permission; if the
+        // user denies it, flip the setting back off so it's honest.
+        async toggleNotifications() {
+            if (this.settings.notifications && typeof Notification !== 'undefined' && Notification.permission !== 'granted') {
+                try {
+                    const p = await Notification.requestPermission();
+                    if (p !== 'granted') { this.settings.notifications = false; this.toast('Notifications blocked by the browser.', 'danger'); }
+                } catch (e) { this.settings.notifications = false; }
+            }
             this.saveSettingsImmediate();
         },
 

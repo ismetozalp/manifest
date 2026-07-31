@@ -82,6 +82,10 @@ try {
     const settingsText = await app.locator('#mfSettings').innerText().catch(() => '');
     check('tuning section present (concurrency + per-server connections)',
         /Max concurrent downloads/i.test(settingsText) && /Max connections per server/i.test(settingsText) && /aria2 caps at 16/i.test(settingsText));
+    // v2.0: notifications toggle + advanced aria2-options editor in Settings
+    check('settings has notifications toggle + advanced aria2-options editor',
+        await app.locator('#mfSettings #mfNotify').count() === 1
+        && /Desktop notification/i.test(settingsText) && /all aria2 options/i.test(settingsText));
 
     // Apply every theme; assert data-bs-theme + readable header contrast (light on dark, or dark on light)
     const themeIds = await app.evaluate(() => (window.ManifestThemes ? window.ManifestThemes.THEMES.map(t => t.id) : []));
@@ -338,7 +342,7 @@ try {
         await app.evaluate(() => {
             const d = window.Alpine.$data(document.querySelector('[x-data]'));
             const files = [{ index: '1', path: '/dl/Show/Sub/a.srt', length: '5', selected: 'true' }, { index: '2', path: '/dl/Show/Sub/b.srt', length: '5', selected: 'true' }, { index: '3', path: '/dl/Show/movie.mkv', length: '900', selected: 'true' }, { index: '4', path: '/dl/Show/junk.txt', length: '9', selected: 'false' }];
-            d.detail = { open: true, gid: 'b', tab: 'files', data: {}, peers: [], trackers: [], files: files.map(f => ({ index: Number(f.index), path: f.path, length: Number(f.length), completedLength: 0, selected: f.selected !== 'false' })), fileTree: window.ManifestFileTree.build(files).nodes, selectedIndices: new Set([1, 2, 3]), collapsed: new Set(), _selGid: 'b', loading: false, error: '', peerSort: null, trackerSort: null };
+            d.detail = { open: true, gid: 'b', tab: 'files', data: {}, peers: [], trackers: [], files: files.map(f => ({ index: Number(f.index), path: f.path, length: Number(f.length), completedLength: 0, selected: f.selected !== 'false' })), fileTree: window.ManifestFileTree.build(files).nodes, selectedIndices: new Set([1, 2, 3]), collapsed: new Set(), _selGid: 'b', loading: false, error: '', peerSort: null, trackerSort: null, opts: { maxConn: '', split: '', maxPeers: '', dlLimit: '', ulLimit: '' } };
         });
         await page.waitForTimeout(300);
         check('detail panel is docked (not a centered modal)', await app.evaluate(() => document.querySelector('#mfDetail').classList.contains('mf-detailpanel')));
@@ -499,6 +503,60 @@ try {
         });
         check('active download is force-removed then purged in one pass (no second click)',
             JSON.stringify(purgeCalls) === JSON.stringify(['forceRemove', 'removeDownloadResult']), JSON.stringify(purgeCalls));
+
+        // ---- v2.0: global one-click actions (Pause all / Resume all / Clear) ----
+        check('toolbar has Pause all / Resume all / Clear finished',
+            await app.locator('.mf-pills button', { hasText: /Pause all/ }).count() === 1
+            && await app.locator('.mf-pills button', { hasText: /Resume all/ }).count() === 1
+            && await app.locator('.mf-pills button', { hasText: /Clear finished/ }).count() === 1);
+        const globalCalls = await app.evaluate(async () => {
+            const d = window.Alpine.$data(document.querySelector('[x-data]'));
+            const calls = []; const real = d.rpc;
+            d.rpc = { pauseAll: () => { calls.push('pauseAll'); return Promise.resolve('OK'); }, unpauseAll: () => { calls.push('unpauseAll'); return Promise.resolve('OK'); } };
+            await d.pauseAll(); await d.resumeAll();
+            d.rpc = real; return calls;
+        });
+        check('Pause all / Resume all call aria2 pauseAll/unpauseAll', JSON.stringify(globalCalls) === JSON.stringify(['pauseAll', 'unpauseAll']), JSON.stringify(globalCalls));
+
+        // ---- v2.0: per-download Options tab applies changeOption ----
+        const optCall = await app.evaluate(async () => {
+            const d = window.Alpine.$data(document.querySelector('[x-data]'));
+            let captured = null; const real = d.rpc;
+            d.rpc = { changeOption: (gid, opts) => { captured = { gid, opts }; return Promise.resolve('OK'); } };
+            d.detail = Object.assign(d.detail, { open: true, gid: 'b', opts: { maxConn: '8', split: '', maxPeers: '60', dlLimit: '500', ulLimit: '0' } });
+            await d.detailApplyOptions();
+            d.rpc = real; return captured;
+        });
+        check('per-download Options apply changeOption with the right keys', optCall && optCall.gid === 'b'
+            && optCall.opts['max-connection-per-server'] === '8' && optCall.opts['bt-max-peers'] === '60'
+            && optCall.opts['max-download-limit'] === '500K' && optCall.opts['max-upload-limit'] === '0'
+            && !('split' in optCall.opts), JSON.stringify(optCall));
+        check('detail has an Options tab', await app.locator('#mfDetail .nav-link', { hasText: /^Options$/ }).count() === 1);
+
+        // ---- v2.0: advanced global-options editor (Settings) ----
+        const adv = await app.evaluate(async () => {
+            const d = window.Alpine.$data(document.querySelector('[x-data]'));
+            let changed = null; const real = d.rpc;
+            d.rpc = { getGlobalOption: () => Promise.resolve({ split: '5', 'max-overall-download-limit': '0' }), changeGlobalOption: (o) => { changed = o; return Promise.resolve('OK'); } };
+            await d.loadAdvOptions();
+            const opened = d.advOpen && d.advKeys.length === 2;
+            d.advOptions.split = '10';                 // edit one
+            await d.applyAdvOptions();
+            d.rpc = real; return { opened, changed };
+        });
+        check('advanced editor loads all aria2 options and applies only changed', adv.opened && JSON.stringify(adv.changed) === JSON.stringify({ split: '10' }), JSON.stringify(adv));
+
+        // ---- v2.0: notifications setting + fire-on-completion path ----
+        const notif = await app.evaluate(() => {
+            const d = window.Alpine.$data(document.querySelector('[x-data]'));
+            let fired = 0; d._notify = () => { fired++; };
+            d.settings.notifications = true;
+            d._notifySnapshot = { g1: { status: 'active', name: 'X' } };
+            d.downloads = { g1: { gid: 'g1', status: 'complete', totalLength: '1', completedLength: '1', files: [{ path: '/x' }] } };
+            d._mergeDownloads(Object.values(d.downloads));   // g1 active→complete → should fire once
+            return { fired };
+        });
+        check('completing a download fires a notification when enabled', notif.fired === 1, JSON.stringify(notif));
     } else {
         check('table/context-menu/detail checks (skipped — aria2 not running)', true, 'set up aria2 to exercise these');
     }

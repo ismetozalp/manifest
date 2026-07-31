@@ -69,7 +69,11 @@ destination bookmarks.
 
 **Settings that live-apply** — concurrency/connection tuning is pushed to the
 running aria2 daemon via `changeGlobalOption` as you save, with the remainder
-(seed ratio/time, min split size, etc.) taking effect on new downloads.
+(seed ratio/time, min split size, etc.) taking effect on new downloads. An
+**Advanced editor** exposes *every* aria2 global option, and each download has
+its own **Options** tab (connections, split, max-peers, speed limits, applied
+live). **Add-time options** on Quick Add, one-click **Pause all / Resume all /
+Clear finished**, and opt-in **desktop notifications** on completion round it out.
 
 **Per-user runtime** — aria2 runs as your own `systemctl --user` unit, with its
 own config, session, and RPC port under `~/.config/cockpit/manifest/`. It never

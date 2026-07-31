@@ -25,7 +25,8 @@
         // they survive a re-login. Each is { gid, name }; entries whose download
         // no longer exists are pruned once downloads are polled (removing is OK).
         minimizedDetails: [],
-        detailHeight: 50   // docked detail-panel height, in vh
+        detailHeight: 50,  // docked detail-panel height, in vh
+        notifications: false   // desktop notifications on download complete/error
     };
 
     function mergeOne(defaults, loaded) {
@@ -53,7 +54,8 @@
             update: mergeOne(DEFAULT_SETTINGS.update, loaded.update),
             minimizedDetails: mergeMinimized(loaded.minimizedDetails),
             detailHeight: (Number.isFinite(Number(loaded.detailHeight)) && Number(loaded.detailHeight) > 0)
-                ? Number(loaded.detailHeight) : DEFAULT_SETTINGS.detailHeight
+                ? Number(loaded.detailHeight) : DEFAULT_SETTINGS.detailHeight,
+            notifications: !!loaded.notifications
         };
     }
 

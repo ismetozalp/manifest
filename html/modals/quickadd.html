@@ -109,6 +109,30 @@
                     <label class="form-check-label" for="qaChooseFiles">Choose files first (a single magnet/torrent) — fetches its file list so you can pick which files to download</label>
                 </div>
 
+                <!-- optional per-add aria2 options -->
+                <div class="mt-2">
+                    <button type="button" class="btn btn-sm btn-link p-0 text-decoration-none" @click="quickAdd.adv.open = !quickAdd.adv.open"
+                            x-text="(quickAdd.adv.open ? '▾' : '▸') + ' Advanced options'"></button>
+                    <div class="row g-2 mt-1" x-show="quickAdd.adv.open" x-cloak>
+                        <div class="col-6 col-md-3">
+                            <label class="form-label mb-1 small">Connections/server</label>
+                            <input type="number" min="1" max="16" class="form-control form-control-sm" placeholder="default" x-model="quickAdd.adv.maxConn">
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <label class="form-label mb-1 small">Split</label>
+                            <input type="number" min="1" class="form-control form-control-sm" placeholder="default" x-model="quickAdd.adv.split">
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <label class="form-label mb-1 small">Max ↓ (KiB/s)</label>
+                            <input type="number" min="0" class="form-control form-control-sm" placeholder="0 = unlimited" x-model="quickAdd.adv.dlLimit">
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <label class="form-label mb-1 small">Save as (single URL)</label>
+                            <input type="text" class="form-control form-control-sm" placeholder="filename" x-model="quickAdd.adv.out">
+                        </div>
+                    </div>
+                </div>
+
                 <div class="alert alert-danger py-1 px-2 mt-2" style="white-space:pre-wrap;" x-show="quickAdd.error" x-text="quickAdd.error"></div>
             </div>
             <div class="modal-footer">

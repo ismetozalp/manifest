@@ -139,7 +139,40 @@
                     </div>
                 </section>
 
-                <!-- 4. Updates -->
+                <!-- 4. Notifications -->
+                <section class="mb-4">
+                    <h6 class="text-uppercase text-body-secondary small fw-bold mb-2">Notifications</h6>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="mfNotify"
+                               x-model="settings.notifications" @change="toggleNotifications()">
+                        <label class="form-check-label" for="mfNotify">Desktop notification when a download completes or fails</label>
+                    </div>
+                </section>
+
+                <!-- 5. Advanced — full aria2 global-options editor -->
+                <section class="mb-4">
+                    <h6 class="text-uppercase text-body-secondary small fw-bold mb-2">Advanced — all aria2 options</h6>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" x-show="!advOpen"
+                            :disabled="!svc.active" @click="loadAdvOptions()">Load aria2 options…</button>
+                    <div x-show="advOpen" x-cloak>
+                        <input type="search" class="form-control form-control-sm mb-2" placeholder="Filter options…" x-model="advFilter">
+                        <div class="border rounded p-2" style="max-height: 16rem; overflow:auto;">
+                            <template x-for="k in advKeys" :key="k">
+                                <div class="row g-1 align-items-center mb-1" x-show="!advFilter || k.includes(advFilter.toLowerCase())">
+                                    <label class="col-5 small text-truncate mb-0" :title="k" x-text="k"></label>
+                                    <div class="col-7"><input type="text" class="form-control form-control-sm" x-model="advOptions[k]"></div>
+                                </div>
+                            </template>
+                        </div>
+                        <div class="d-flex gap-2 mt-2">
+                            <button type="button" class="btn btn-sm btn-primary" @click="applyAdvOptions()">Apply changed options</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" @click="advOpen=false">Done</button>
+                        </div>
+                        <div class="form-text">Applied live via <code>changeGlobalOption</code>. Blank a value to reset it; some options only affect new downloads.</div>
+                    </div>
+                </section>
+
+                <!-- 6. Updates -->
                 <section class="mb-1">
                     <h6 class="text-uppercase text-body-secondary small fw-bold mb-2">Updates</h6>
                     <label class="form-label mb-1">GitHub repo (owner/name or releases URL)</label>

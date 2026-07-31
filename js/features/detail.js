@@ -16,6 +16,7 @@
 (function (root) {
     const Util = root.ManifestUtil;
     const Sorting = root.ManifestSorting;
+    const OptDiff = root.ManifestOptDiff;
 
     const DETAIL_POLL_MS = 1500;
     const DETAIL_MIN_VH = 20, DETAIL_MAX_VH = 90, DETAIL_DEFAULT_VH = 50;
@@ -81,6 +82,7 @@
             fileTree: [], selectedIndices: new Set(), collapsed: new Set(), _selGid: null,
             loading: false, error: '',
             peerSort: null, trackerSort: null,
+            opts: { maxConn: '', split: '', maxPeers: '', dlLimit: '', ulLimit: '' },
         };
     }
 
@@ -252,6 +254,26 @@
                 url: (t) => String(t.url || '').toLowerCase(),
                 speed: (t) => Number(t.downloadSpeed) || 0,
             });
+        },
+
+        // Apply per-download options to the focused download (live changeOption).
+        async detailApplyOptions() {
+            const gid = this.detail && this.detail.gid;
+            if (!gid || !this.rpc) return;
+            const o = this.detail.opts || {};
+            const opts = {};
+            if (o.maxConn) opts['max-connection-per-server'] = String(o.maxConn);
+            if (o.split) opts['split'] = String(o.split);
+            if (o.maxPeers) opts['bt-max-peers'] = String(o.maxPeers);
+            if (o.dlLimit !== '' && o.dlLimit != null) opts['max-download-limit'] = OptDiff.speedLimit(o.dlLimit);
+            if (o.ulLimit !== '' && o.ulLimit != null) opts['max-upload-limit'] = OptDiff.speedLimit(o.ulLimit);
+            if (!Object.keys(opts).length) { this.toast('Enter a value to change.', 'info'); return; }
+            try {
+                await this.rpc.changeOption(gid, opts);
+                this.toast('Options applied to this download.', 'success');
+            } catch (e) {
+                this.toast('Apply failed: ' + ((e && e.message) || e), 'danger');
+            }
         },
 
         detailSwitchTab(tab) {

@@ -71,6 +71,8 @@
         const forceRemove = (gid) => raw('aria2.forceRemove', [gid]);
         const pause = (gid) => raw('aria2.pause', [gid]);
         const unpause = (gid) => raw('aria2.unpause', [gid]);
+        const pauseAll = () => raw('aria2.pauseAll', []);
+        const unpauseAll = () => raw('aria2.unpauseAll', []);
         const changeOption = (gid, opts_) => raw('aria2.changeOption', [gid, opts_]);
         const changeGlobalOption = (opts_) => raw('aria2.changeGlobalOption', [opts_]);
         const getFiles = (gid) => raw('aria2.getFiles', [gid]);
@@ -87,7 +89,7 @@
             getVersion, getGlobalStat,
             tellActive, tellWaiting, tellStopped, tellStatus,
             addUri, addTorrent, addMetalink,
-            remove, forceRemove, pause, unpause,
+            remove, forceRemove, pause, unpause, pauseAll, unpauseAll,
             changeOption, changeGlobalOption,
             getFiles, getPeers, getServers, getUris,
             removeDownloadResult, purgeDownloadResult,

@@ -62,11 +62,17 @@
 <!-- FILTER PILLS (horizontal row — NOT a sidebar). Shown even before aria2 is
      set up / while it's stopped so the Queue pill (staging only, no aria2
      needed) stays reachable. -->
-<nav class="mf-pills d-flex flex-wrap gap-2 px-3 py-2">
+<nav class="mf-pills d-flex flex-wrap align-items-center gap-2 px-3 py-2">
     <template x-for="p in filterPills" :key="p.key">
         <button class="btn btn-sm" :class="activeFilter===p.key ? 'btn-primary' : 'btn-outline-secondary'"
                 @click="activeFilter=p.key" x-text="p.label + ' (' + (counts[p.key]||0) + ')'"></button>
     </template>
+    <!-- global one-click actions -->
+    <div class="ms-auto d-flex gap-2" x-show="svc.active && activeFilter !== 'queue'">
+        <button class="btn btn-sm btn-outline-secondary" title="Pause all downloads" @click="pauseAll()">⏸ Pause all</button>
+        <button class="btn btn-sm btn-outline-secondary" title="Resume all downloads" @click="resumeAll()">▶ Resume all</button>
+        <button class="btn btn-sm btn-outline-secondary" title="Clear finished/errored entries (files kept)" @click="purgeCompleted()">🧹 Clear finished</button>
+    </div>
 </nav>
 
 <!-- BULK-ACTION BAR: appears when one or more rows are checkbox-selected. The
@@ -248,6 +254,8 @@
 <script src="js/core/columns.js"></script>
 <script src="js/core/selection.js"></script>
 <script src="js/core/sorting.js"></script>
+<script src="js/core/optdiff.js"></script>
+<script src="js/core/notify.js"></script>
 <script src="js/core/defaults.js"></script>
 <script src="js/js-yaml.min.js"></script>
 <script src="js/fs.js"></script>

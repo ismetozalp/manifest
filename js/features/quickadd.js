@@ -28,6 +28,8 @@
             error: '',
             dragOver: false,
             torrentFiles: [],   // [{name,size,b64,gid,entries,expanded,loading,error}]
+            // optional per-add aria2 options (blank = use the global defaults)
+            adv: { open: false, maxConn: '', split: '', dlLimit: '', out: '' },
         };
     }
 
@@ -202,6 +204,13 @@
             }
 
             const opts = { dir: this.quickAdd.dir, pause: this.quickAdd.paused ? 'true' : 'false' };
+            // Fold in the optional advanced per-add options (blank = global default).
+            const a = this.quickAdd.adv || {};
+            if (a.maxConn) opts['max-connection-per-server'] = String(a.maxConn);
+            if (a.split) opts['split'] = String(a.split);
+            if (a.dlLimit) opts['max-download-limit'] = String(a.dlLimit) + 'K';
+            // out (filename) only makes sense for a single URL, not a batch/torrent
+            if (a.out && items.length === 1 && !this.quickAdd.torrentFiles.length) opts['out'] = String(a.out);
             const errors = [];
 
             for (const item of items) {

@@ -14,6 +14,14 @@ HTTP/FTP/Metalink files, all inside the Cockpit console. Pure HTML/CSS/JS,
 >
 > **📺 And:** [**InFlight TV**](https://github.com/ismetozalp/iftv) (`ismetozalp/iftv`) —
 > an IPTV / live-TV player for the Cockpit console.
+>
+> **🖥️ And:** [**Pilot**](https://github.com/ismetozalp/pilot) (`ismetozalp/pilot`) —
+> provisions and manages a self-hosted RustDesk server (hbbs/hbbr + the rustdesk-api
+> control plane) for remote access, from the Cockpit console.
+>
+> **💾 And:** [**Hangar**](https://github.com/ismetozalp/hangar) (`ismetozalp/hangar`) —
+> backups for Cockpit: restic/rclone for your files, ReaR for the whole machine, and
+> a recovery drill that boots the rescue image in a throwaway VM to prove it works.
 
 ## What it does
 

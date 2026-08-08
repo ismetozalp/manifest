@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.0.1
+
+### Fixed
+- **Downloads to network mounts (CIFS/NFS/SMB) no longer stall periodically, and
+  selected-subset torrents no longer look like they grabbed everything.** aria2's
+  default `file-allocation=prealloc` calls `fallocate` — which stalls hard on
+  network filesystems (the "pauses" during large downloads) and pre-allocates
+  even *unselected* torrent files to full size. The generated `aria2.conf` now
+  sets `file-allocation=none`, `disk-cache=64M` (buffer writes, fewer flushes),
+  and `bt-remove-unselected-file=true` (drop unselected files on completion).
+- The config is now regenerated on service start, so config improvements from an
+  update take effect on the next start — not only at first Setup.
+
 ## 2.0.0
 
 Feature parity pass inspired by webui-aria2.

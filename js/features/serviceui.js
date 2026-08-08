@@ -65,6 +65,20 @@
 
         async startService() {
             try {
+                // Regenerate aria2.conf first so config improvements shipped in an
+                // update (e.g. file-allocation/disk-cache tuning) take effect on the
+                // next start, not only at first Setup. Guarded: only when the RPC
+                // port/secret are already known (i.e. Setup has run).
+                const rpc = (this.settings && this.settings.rpc) || {};
+                if (this.home && rpc.port && rpc.secret) {
+                    try {
+                        await ManifestService.writeConfig({
+                            home: this.home, port: rpc.port, secret: rpc.secret,
+                            dir: (this.settings.destinations && this.settings.destinations.default) || this.home,
+                            settings: this.settings,
+                        });
+                    } catch (e) { /* non-fatal — start with the existing config */ }
+                }
                 await ManifestService.start();
             } catch (e) {
                 this.toast('Failed to start aria2: ' + ((e && e.message) || e), 'danger');

@@ -25,7 +25,21 @@
             // download completes (force-save=true leaves a leftover .aria2 next
             // to every finished file). Completed items still show in the UI while
             // aria2 runs; they're just not re-persisted across an aria2 restart.
-            'force-save=false'
+            'force-save=false',
+            // file-allocation=none: DON'T pre-allocate files. aria2's default
+            // (prealloc/fallocate) stalls hard on network mounts (CIFS/NFS/SMB) —
+            // the periodic "pauses" during large downloads — and pre-allocates
+            // even UNSELECTED torrent files to full size, so a selected-subset
+            // download looks like it grabbed everything. With none, files grow as
+            // data arrives and unselected files stay empty.
+            'file-allocation=none',
+            // disk-cache: buffer writes in RAM so a slow/network disk is flushed
+            // less often (fewer stalls). aria2 default is 16M.
+            'disk-cache=64M',
+            // bt-remove-unselected-file: when you download a subset of a torrent's
+            // files, drop the unselected ones on completion instead of leaving
+            // empty placeholders behind.
+            'bt-remove-unselected-file=true'
         ];
         Object.keys(limits).forEach(function (k) {
             lines.push(k + '=' + limits[k]);

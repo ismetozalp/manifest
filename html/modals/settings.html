@@ -137,6 +137,14 @@
                                    x-model.number="settings.pollIntervalMs" @change="saveSettings()">
                         </div>
                     </div>
+                    <div class="form-check mt-2">
+                        <input class="form-check-input" type="checkbox" id="mfListenAll"
+                               x-model="settings.rpc.listenAll" @change="toggleListenAll()">
+                        <label class="form-check-label" for="mfListenAll">Listen on all interfaces</label>
+                        <div class="form-text">Off = the RPC is reachable from this machine only (loopback). On = reachable from your LAN
+                            (e.g. for the Aria2 Explorer browser extension) — the RPC secret is then the only thing gating it, so use it on a
+                            trusted network. Toggling restarts aria2 to re-bind.</div>
+                    </div>
                 </section>
 
                 <!-- 4. Notifications -->

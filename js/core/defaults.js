@@ -5,7 +5,7 @@
 
     const DEFAULT_SETTINGS = {
         theme: 'system',                           // ManifestThemes id
-        rpc: { port: null, secret: null },        // filled at setup
+        rpc: { port: null, secret: null, listenAll: false },   // port/secret filled at setup; listenAll = bind RPC to all interfaces
         pollIntervalMs: 1500,
         columns: { widths: Columns.DEFAULT_WIDTHS.slice() },  // download-table column widths (%)
         destinations: { default: null, bookmarks: [], recents: [] },
@@ -46,7 +46,7 @@
         loaded = loaded || {};
         return {
             theme: loaded.theme != null ? loaded.theme : DEFAULT_SETTINGS.theme,
-            rpc: mergeOne(DEFAULT_SETTINGS.rpc, loaded.rpc),
+            rpc: Object.assign(mergeOne(DEFAULT_SETTINGS.rpc, loaded.rpc), { listenAll: !!(loaded.rpc && loaded.rpc.listenAll) }),
             pollIntervalMs: loaded.pollIntervalMs != null ? loaded.pollIntervalMs : DEFAULT_SETTINGS.pollIntervalMs,
             columns: { widths: Columns.normalizeWidths(loaded.columns && loaded.columns.widths) },
             destinations: mergeOne(DEFAULT_SETTINGS.destinations, loaded.destinations),

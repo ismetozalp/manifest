@@ -7,11 +7,16 @@
         const secret = opts.secret;
         const dir = opts.dir;
         const limits = opts.limits || {};
+        // listenAll=true binds the RPC to all interfaces (0.0.0.0) instead of
+        // loopback-only, so a browser/tool on another machine (e.g. the Aria2
+        // Explorer extension) can reach it. Off by default — the rpc-secret is
+        // then the only thing gating the port, so it's opt-in and LAN-only.
+        const listenAll = !!opts.listenAll;
         const manifestDir = home + '/.config/cockpit/manifest';
         const sessionPath = manifestDir + '/aria2.session';
         const lines = [
             'enable-rpc=true',
-            'rpc-listen-all=false',
+            'rpc-listen-all=' + (listenAll ? 'true' : 'false'),
             'rpc-listen-port=' + port,
             'rpc-secret=' + secret,
             'dir=' + dir,

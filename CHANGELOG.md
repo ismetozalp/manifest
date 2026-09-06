@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.0.2
+
+### Added
+- **"Listen on all interfaces" RPC toggle** (Settings → RPC). Off (the default)
+  keeps the aria2 RPC bound to loopback — reachable from this machine only. On
+  binds it on all interfaces so it's reachable from your LAN — e.g. for the
+  [Aria2 Explorer](https://github.com/alexhua/Aria2-Explorer) browser extension.
+  The RPC secret is then the only thing gating access, so use it on a trusted
+  network. `rpc-listen-all` is a startup option, so toggling regenerates
+  `aria2.conf` and restarts aria2 to re-bind.
+
 ## 2.0.1
 
 ### Fixed

@@ -86,6 +86,9 @@ try {
     check('settings has notifications toggle + advanced aria2-options editor',
         await app.locator('#mfSettings #mfNotify').count() === 1
         && /Desktop notification/i.test(settingsText) && /all aria2 options/i.test(settingsText));
+    // v2.0.2: RPC "listen on all interfaces" toggle
+    check('settings has the RPC listen-on-all-interfaces toggle',
+        await app.locator('#mfSettings #mfListenAll').count() === 1 && /Listen on all interfaces/i.test(settingsText));
 
     // Apply every theme; assert data-bs-theme + readable header contrast (light on dark, or dark on light)
     const themeIds = await app.evaluate(() => (window.ManifestThemes ? window.ManifestThemes.THEMES.map(t => t.id) : []));

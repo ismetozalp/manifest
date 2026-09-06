@@ -63,6 +63,18 @@ test('minimizedDetails: non-array → empty; strips extra fields to {gid,name}',
         [{ gid: 'g', name: 'n' }]);
 });
 
+test('rpc.listenAll: defaults off; coerced to a boolean; port/secret preserved', () => {
+    assert.equal(D.DEFAULT_SETTINGS.rpc.listenAll, false);
+    assert.equal(D.mergeSettings({}).rpc.listenAll, false);
+    assert.equal(D.mergeSettings({ rpc: { listenAll: true } }).rpc.listenAll, true);
+    assert.equal(D.mergeSettings({ rpc: { listenAll: 1 } }).rpc.listenAll, true);
+    assert.equal(D.mergeSettings({ rpc: { listenAll: 0 } }).rpc.listenAll, false);
+    const m = D.mergeSettings({ rpc: { port: 16800, secret: 'x', listenAll: true } });
+    assert.equal(m.rpc.port, 16800);
+    assert.equal(m.rpc.secret, 'x');
+    assert.equal(m.rpc.listenAll, true);
+});
+
 test('notifications: defaults off; coerced to a boolean', () => {
     assert.equal(D.DEFAULT_SETTINGS.notifications, false);
     assert.equal(D.mergeSettings({}).notifications, false);
@@ -98,7 +110,7 @@ test('mergeSettings with only limits provided keeps all other top-level sections
     const m = D.mergeSettings({ limits: { seedRatio: 3.5 } });
     assert.equal(m.limits.seedRatio, 3.5);
     assert.equal(m.limits.maxConcurrentDownloads, 5);
-    assert.deepEqual(m.rpc, { port: null, secret: null });
+    assert.deepEqual(m.rpc, { port: null, secret: null, listenAll: false });
     assert.deepEqual(m.destinations, { default: null, bookmarks: [], recents: [] });
     assert.equal(m.pollIntervalMs, 1500);
     assert.deepEqual(m.update, { repo: 'ismetozalp/manifest', checkOnStartup: true });

@@ -166,7 +166,8 @@
         await FS.chmod('600', sessionPath);
 
         const limits = Defaults.toAria2GlobalOptions(settings);
-        const confText = Aria2Conf.confText({ home, port, secret, dir, limits });
+        const listenAll = !!(settings && settings.rpc && settings.rpc.listenAll);
+        const confText = Aria2Conf.confText({ home, port, secret, dir, limits, listenAll });
         const confPath = Util.joinPath(cfgDir, 'aria2.conf');
         // aria2.conf embeds rpc-secret — write it owner-only (0600).
         await FS.writeSecret(confPath, confText);

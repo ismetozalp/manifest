@@ -67,6 +67,18 @@
             this.saveSettingsImmediate();
         },
 
+        // rpc-listen-all is a startup option (not runtime-changeable), so toggling
+        // it regenerates the config and restarts aria2 to re-bind the RPC.
+        async toggleListenAll() {
+            this.saveSettings();
+            if (this.svc && this.svc.active && typeof this.startService === 'function') {
+                this.toast(this.settings.rpc.listenAll
+                    ? 'Exposing aria2 RPC on all interfaces — restarting aria2…'
+                    : 'Restricting aria2 RPC to localhost — restarting aria2…', 'info');
+                await this.startService();   // regenerates config + restarts
+            }
+        },
+
         // Toggling desktop notifications on requests browser permission; if the
         // user denies it, flip the setting back off so it's honest.
         async toggleNotifications() {

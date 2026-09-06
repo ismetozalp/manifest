@@ -6,6 +6,12 @@ const C = require('../../js/core/aria2conf.js');
 const conf = C.confText({ home: '/home/u', port: 17123, secret: 'S3',
     dir: '/mnt/dl', limits: { 'max-concurrent-downloads': '5', 'bt-max-peers': '55' } });
 
+test('rpc-listen-all follows the listenAll option (default false, opt-in true)', () => {
+    assert.match(C.confText({ home: '/h', port: 1, secret: 's', dir: '/d' }), /^rpc-listen-all=false$/m);
+    assert.match(C.confText({ home: '/h', port: 1, secret: 's', dir: '/d', listenAll: false }), /^rpc-listen-all=false$/m);
+    assert.match(C.confText({ home: '/h', port: 1, secret: 's', dir: '/d', listenAll: true }), /^rpc-listen-all=true$/m);
+});
+
 test('conf has rpc + isolation + session + tuning', () => {
     assert.match(conf, /enable-rpc=true/);
     assert.match(conf, /rpc-listen-all=false/);

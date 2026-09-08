@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.0.3
+
+### Fixed
+- **Magnet downloads no longer come back paused after a reboot / aria2 restart.**
+  Manifest adds magnets with `pause-metadata=true` so you can pick files once the
+  torrent metadata arrives — but that flag was left on the download afterwards, so
+  aria2 saved it into `aria2.session` and re-paused the download on every restart
+  (you had to hit *Resume all*). Confirming your file selection now clears
+  `pause-metadata`, so restarts resume the queue automatically. Existing paused
+  magnets fix themselves the next time they're resumed.
+
 ## 2.0.2
 
 ### Added

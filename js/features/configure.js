@@ -227,6 +227,13 @@
                     await this.rpc.changeOption(cfg.gid, { 'select-file': Util.selectFileCsv(selected, total) });
                 }
                 await this.rpc.unpause(cfg.gid);
+                // pause-metadata was a transient add-time flag (magnets only) so
+                // the real download spawns paused for file-selection. Left on, it
+                // gets written into aria2.session and re-pauses the download on
+                // every daemon restart — so clear it now that we've unpaused.
+                if (cfg.item.type === 'magnet') {
+                    await this.rpc.changeOption(cfg.gid, { 'pause-metadata': 'false' });
+                }
                 this._cfgFinish();
             } catch (e) {
                 cfg.error = 'Could not start: ' + ((e && e.message) || e);

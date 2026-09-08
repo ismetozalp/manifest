@@ -536,6 +536,34 @@ try {
             && !('split' in optCall.opts), JSON.stringify(optCall));
         check('detail has an Options tab', await app.locator('#mfDetail .nav-link', { hasText: /^Options$/ }).count() === 1);
 
+        // ---- v2.0.3: confirming a magnet's file selection clears pause-metadata
+        // so aria2.session doesn't re-pause the download on every daemon restart ----
+        const pmClear = await app.evaluate(async () => {
+            const d = window.Alpine.$data(document.querySelector('[x-data]'));
+            const realRpc = d.rpc, realFinish = d._cfgFinish;
+            d._cfgFinish = () => {};                 // isolate: skip modal/queue teardown
+            const run = async (type) => {
+                const calls = [];
+                d.rpc = {
+                    changeOption: (gid, opts) => { calls.push('changeOption:' + Object.keys(opts).join(',') + '=' + Object.values(opts).join(',')); return Promise.resolve('OK'); },
+                    unpause: (gid) => { calls.push('unpause'); return Promise.resolve('OK'); },
+                };
+                d.queue.configuring = {
+                    stage: 'files', busy: false, gid: 'MAG', item: { type, id: 'x', value: 'magnet:?xt=urn:btih:abc' },
+                    files: [{ index: 1, path: 'movie.mkv', length: 10, selected: true }], fileTree: [], selectedIndices: new Set([1]),
+                };
+                await d.cfgConfirmFiles();
+                return calls;
+            };
+            const magnet = await run('magnet');
+            const torrent = await run('torrent');
+            d.rpc = realRpc; d._cfgFinish = realFinish; d.queue.configuring = null;
+            return { magnet, torrent };
+        });
+        check('confirming a magnet clears pause-metadata after unpause (no restart re-pause)',
+            JSON.stringify(pmClear.magnet) === JSON.stringify(['unpause', 'changeOption:pause-metadata=false'])
+            && JSON.stringify(pmClear.torrent) === JSON.stringify(['unpause']), JSON.stringify(pmClear));
+
         // ---- v2.0: advanced global-options editor (Settings) ----
         const adv = await app.evaluate(async () => {
             const d = window.Alpine.$data(document.querySelector('[x-data]'));

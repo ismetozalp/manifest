@@ -108,18 +108,45 @@
         },
 
         async _applyLimitsNow() {
-            if (!this.rpc) return;
             // Clamp in the model too so the input reflects what actually
             // gets sent (toAria2GlobalOptions() also clamps defensively).
             const maxConn = Math.max(1, Math.min(16, Number(this.settings.limits.maxConnectionsPerServer) || 0));
             if (this.settings.limits.maxConnectionsPerServer !== maxConn) {
                 this.settings.limits.maxConnectionsPerServer = maxConn;
             }
+            if (this.rpc) {
+                try {
+                    await this.rpc.changeGlobalOption(ManifestDefaults.toAria2GlobalOptions(this.settings));
+                    this.toast('Limits applied.', 'success');
+                } catch (e) {
+                    this.toast('Could not apply limits live: ' + ((e && e.message) || e), 'danger');
+                }
+            }
+            // Live changeGlobalOption is runtime-only — it evaporates when aria2
+            // restarts (a reboot starts the unit straight from aria2.conf). So
+            // also rewrite the on-disk config, otherwise startup options like
+            // disk-cache silently revert to their setup-time value after a reboot.
+            await this._persistLimitsToConfig();
+        },
+
+        // Rewrite aria2.conf from the current settings so limit changes (notably
+        // the startup-only ones like disk-cache) survive an aria2/host restart.
+        // Non-fatal: the live RPC apply already took effect for this session, and
+        // setup()/applyPort() also rewrite the conf, so a failure here is not
+        // worth interrupting the user over.
+        async _persistLimitsToConfig() {
             try {
-                await this.rpc.changeGlobalOption(ManifestDefaults.toAria2GlobalOptions(this.settings));
-                this.toast('Limits applied.', 'success');
+                const s = this.settings;
+                if (!s || !s.rpc || !s.rpc.port || !s.rpc.secret) return; // aria2 not set up yet — nothing to rewrite
+                const home = this.home || await FS.homeDir();
+                const d = await ManifestService.detect(home);
+                if (!d.installed) return;
+                const dir = (s.destinations && s.destinations.default) || home;
+                await ManifestService.writeConfig({
+                    home, port: s.rpc.port, secret: s.rpc.secret, dir, settings: s, aria2Path: d.aria2Path,
+                });
             } catch (e) {
-                this.toast('Could not apply limits live: ' + ((e && e.message) || e), 'danger');
+                console.warn('[manifest] could not persist limits to aria2.conf (non-fatal):', (e && e.message) || e);
             }
         },
 

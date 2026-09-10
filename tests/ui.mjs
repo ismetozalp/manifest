@@ -121,6 +121,43 @@ try {
         JSON.stringify(pick.filtered) === JSON.stringify(['Movies', 'movies-2']) && pick.unfiltered === 4, JSON.stringify(pick));
     check('picker path field navigates to the trimmed typed path (blank is ignored)',
         pick.navTo === '/mnt/nas/films' && pick.navToAfterBlank === '/mnt/nas/films');
+    // v2.1.0 (review fix P1): a non-absolute value must never reach `find` — a
+    // value like "-delete" would otherwise be parsed as a find action.
+    const reject = await app.evaluate(() => {
+        const d = window.Alpine.$data(document.querySelector('[x-data]'));
+        let navTo = null; const realList = d._fpList;
+        d._fpList = (p) => { navTo = p; return Promise.resolve(); };
+        const trial = (v) => { navTo = null; d.fsPicker.error = ''; d.fsPicker.pathInput = v; d._fpGoPath(); return { navTo, error: d.fsPicker.error }; };
+        const rel = trial('relative/path');
+        const danger = trial('-delete');
+        const ok = trial('/mnt/nas');
+        d._fpList = realList; d.fsPicker.error = ''; d.fsPicker.pathInput = '';
+        return { rel, danger, ok };
+    });
+    check('picker rejects non-absolute / find-expression path input (only absolute navigates)',
+        reject.rel.navTo === null && !!reject.rel.error
+        && reject.danger.navTo === null && !!reject.danger.error
+        && reject.ok.navTo === '/mnt/nas', JSON.stringify(reject));
+    // v2.1.0 (review fix P2): a slow listing that resolves after a newer
+    // navigation must not clobber it (request-sequence guard in _fpList).
+    const race = await app.evaluate(async () => {
+        const d = window.Alpine.$data(document.querySelector('[x-data]'));
+        const realSpawn = window.FS.spawn;
+        window.FS.spawn = (argv) => {                 // /slow resolves AFTER /fast, though it started first
+            const path = argv[1];
+            const delay = path === '/slow' ? 60 : 5;
+            const out = path === '/fast' ? 'FA\nFB\n' : 'SA\n';
+            return new Promise((r) => setTimeout(() => r(out), delay));
+        };
+        const p1 = d._fpList('/slow');                // older navigation, slow find
+        const p2 = d._fpList('/fast');                // newer navigation, fast find
+        await Promise.all([p1, p2]);
+        const result = { cwd: d.fsPicker.cwd, entries: d.fsPicker.entries.slice() };
+        window.FS.spawn = realSpawn; d.fsPicker.entries = []; d.fsPicker.cwd = '/'; d.fsPicker.pathInput = '';
+        return result;
+    });
+    check('picker ignores a stale slow listing (newest navigation wins)',
+        race.cwd === '/fast' && JSON.stringify(race.entries) === JSON.stringify(['FA', 'FB']), JSON.stringify(race));
 
     // Apply every theme; assert data-bs-theme + readable header contrast (light on dark, or dark on light)
     const themeIds = await app.evaluate(() => (window.ManifestThemes ? window.ManifestThemes.THEMES.map(t => t.id) : []));

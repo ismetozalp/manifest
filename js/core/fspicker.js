@@ -13,6 +13,10 @@
         // Captured by html/modals/confirm.html's x-init on #mfFolderPicker.
         // Visibility is driven via bootstrap.Modal, not x-show.
         fsPickerEl: null,
+        // Monotonic id for _fpList calls: a slow (network-mount) listing that
+        // resolves after a newer navigation must NOT clobber it, so each call
+        // captures its id and bails if a later call has since superseded it.
+        _fpSeq: 0,
 
         fsPicker: {
             open: false,
@@ -41,8 +45,10 @@
 
         async _fpList(path) {
             this.fsPicker.error = '';
+            const seq = ++this._fpSeq;          // claim this navigation
             try {
                 const out = await FS.spawn(['find', path, '-mindepth', '1', '-maxdepth', '1', '-type', 'd', '-printf', '%f\\n']);
+                if (seq !== this._fpSeq) return; // a newer navigation superseded us — drop this stale result
                 const names = String(out).split('\n').filter(Boolean).sort((a, b) => a.localeCompare(b));
                 this.fsPicker.cwd = path;
                 this.fsPicker.pathInput = path;   // keep the editable field in sync with where we are
@@ -50,6 +56,7 @@
                 this.fsPicker.entries = names;
                 this.fsPicker.selected = null;
             } catch (e) {
+                if (seq !== this._fpSeq) return;
                 this.fsPicker.cwd = path;
                 this.fsPicker.pathInput = path;
                 this.fsPicker.entries = [];
@@ -59,12 +66,19 @@
             }
         },
 
-        // Navigate to a hand-typed/pasted absolute path (Enter or the Go button).
-        // A non-existent/unreadable path surfaces via _fpList's error, same as any
-        // other unreadable folder — navigate-only, we never create it here.
+        // Navigate to a hand-typed/pasted path (Enter or the Go button). Only
+        // ABSOLUTE paths are accepted: the value becomes the first argument to
+        // `find`, so a relative value like "-delete" would be parsed as a find
+        // ACTION (deleting entries in the bridge's cwd) rather than a path.
+        // Requiring a leading "/" makes that impossible. Navigate-only — a
+        // missing/unreadable path surfaces via _fpList's error; we never create it.
         _fpGoPath(path) {
             const p = (path == null ? this.fsPicker.pathInput : path || '').trim();
             if (!p) return;
+            if (p.charAt(0) !== '/') {
+                this.fsPicker.error = 'Enter an absolute path (starting with “/”).';
+                return;
+            }
             this._fpList(p);
         },
 

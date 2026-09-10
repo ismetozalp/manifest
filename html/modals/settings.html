@@ -100,8 +100,9 @@
                         <div class="col-6">
                             <label class="form-label mb-1">Disk cache (MiB, 0 = off)</label>
                             <input type="number" min="0" class="form-control form-control-sm"
-                                   x-model.number="settings.limits.diskCacheMiB" @change="applyLimits()">
-                            <div class="form-text">RAM write buffer — batches disk writes (helps network mounts). aria2 default 16.</div>
+                                   x-model.number="settings.limits.diskCacheMiB" @change="applyDiskCache()">
+                            <div class="form-text">RAM write buffer — batches disk writes (helps network mounts). aria2 default 16.
+                                Startup option: applies when aria2 restarts (Manifest offers to restart).</div>
                         </div>
                         <div class="col-6">
                             <label class="form-label mb-1">Download limit (KiB/s, 0 = unlimited)</label>

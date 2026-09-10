@@ -89,13 +89,31 @@ try {
     // v2.0.2: RPC "listen on all interfaces" toggle
     check('settings has the RPC listen-on-all-interfaces toggle',
         await app.locator('#mfSettings #mfListenAll').count() === 1 && /Listen on all interfaces/i.test(settingsText));
-    // v2.1.0: disk-cache is a user setting in the Limits section (live-applied)
-    check('settings has a Disk cache (MiB) field bound to limits.diskCacheMiB',
-        await app.locator('#mfSettings input[x-model\\.number="settings.limits.diskCacheMiB"]').count() === 1
-        && /Disk cache/i.test(settingsText));
+    // v2.1.0: disk-cache is a Settings → Limits field. It's a STARTUP option
+    // (aria2 ignores it live), so it's wired to applyDiskCache() — save + rewrite
+    // aria2.conf + offer to restart — not the live applyLimits() path.
+    const dcInput = app.locator('#mfSettings input[x-model\\.number="settings.limits.diskCacheMiB"]');
+    const dcHtml = await dcInput.evaluate((el) => el.outerHTML).catch(() => '');
+    check('settings has a Disk cache field wired to applyDiskCache (startup-only)',
+        await dcInput.count() === 1 && /applyDiskCache\(\)/.test(dcHtml)
+        && /Disk cache/i.test(settingsText) && /startup option|restart/i.test(settingsText));
     const dcOpt = await app.evaluate(() =>
         window.ManifestDefaults.toAria2GlobalOptions(window.ManifestDefaults.mergeSettings({ limits: { diskCacheMiB: 128 } }))['disk-cache']);
-    check('disk-cache flows into aria2 global options as "<n>M"', dcOpt === '128M', dcOpt);
+    check('disk-cache flows into aria2.conf options as "<n>M"', dcOpt === '128M', dcOpt);
+    const dcFlow = await app.evaluate(async () => {
+        const d = window.Alpine.$data(document.querySelector('[x-data]'));
+        const calls = [];
+        const real = { save: d.saveSettings, persist: d._persistLimitsToConfig, confirm: d.confirmDialog, svc: d.svc };
+        d.saveSettings = () => { calls.push('save'); };
+        d._persistLimitsToConfig = () => { calls.push('persistConf'); return Promise.resolve(); };
+        d.confirmDialog = () => { calls.push('offerRestart'); return Promise.resolve(false); }; // decline → no restart
+        d.svc = { active: true };
+        await d.applyDiskCache();
+        d.saveSettings = real.save; d._persistLimitsToConfig = real.persist; d.confirmDialog = real.confirm; d.svc = real.svc;
+        return calls;
+    });
+    check('applyDiskCache saves + rewrites aria2.conf + offers a restart to apply',
+        JSON.stringify(dcFlow) === JSON.stringify(['save', 'persistConf', 'offerRestart']), JSON.stringify(dcFlow));
 
     // v2.1.0: folder picker gains an editable path field + a search/filter box
     check('folder picker has an editable path field + a search box',

@@ -70,7 +70,11 @@
         const maxConn = Math.max(1, Math.min(16, Number(limits.maxConnectionsPerServer) || 0));
         // disk-cache: a non-negative MiB buffer; 0 disables the cache. Fall back
         // to the 64M default when the value is missing/invalid rather than 0, so a
-        // malformed setting doesn't silently turn the cache off.
+        // malformed setting doesn't silently turn the cache off. NB: this is a
+        // STARTUP option — aria2 accepts it in changeGlobalOption (returns OK) but
+        // ignores it on the running instance, so it only takes effect via the
+        // written aria2.conf on the next aria2 start. It's emitted here anyway so
+        // the conf carries it; the live payload it rides in ignores it harmlessly.
         const dcMiB = Number(limits.diskCacheMiB);
         const diskCache = Number.isFinite(dcMiB) && dcMiB >= 0
             ? (dcMiB > 0 ? dcMiB + 'M' : '0')

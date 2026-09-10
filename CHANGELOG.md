@@ -5,8 +5,9 @@
 ### Added
 - **Configurable disk cache.** Settings → Limits now has a **Disk cache (MiB)**
   field (default 64, `0` disables it). It's aria2's in-RAM write buffer that
-  batches disk writes — useful on network mounts. Applied live (no restart) and
-  persisted to `aria2.conf`.
+  batches disk writes — useful on network mounts. It's a startup option (aria2
+  ignores it on a running instance), so Manifest writes it to `aria2.conf` and
+  offers to restart aria2 to apply it — active downloads resume automatically.
 - **Editable path in the folder picker.** Every Browse dialog (Quick Add,
   Configure, Settings) now has a path field — type or paste an absolute path and
   press Enter/Go to jump straight there instead of clicking down the tree.

@@ -141,12 +141,42 @@
                 const home = this.home || await FS.homeDir();
                 const d = await ManifestService.detect(home);
                 if (!d.installed) return;
-                const dir = (s.destinations && s.destinations.default) || home;
+                // MUST match ManifestService.setup()'s fallback ($HOME/Downloads),
+                // NOT $HOME — otherwise rewriting the conf for a user who kept the
+                // default destination would silently relocate downloads to $HOME.
+                const dir = (s.destinations && s.destinations.default) || ManifestUtil.joinPath(home, 'Downloads');
                 await ManifestService.writeConfig({
                     home, port: s.rpc.port, secret: s.rpc.secret, dir, settings: s, aria2Path: d.aria2Path,
                 });
             } catch (e) {
                 console.warn('[manifest] could not persist limits to aria2.conf (non-fatal):', (e && e.message) || e);
+            }
+        },
+
+        // Disk cache is a STARTUP option: aria2 accepts it in changeGlobalOption
+        // (returns OK) but silently ignores it on the running instance, so it only
+        // takes effect on the next aria2 start. Persist it to aria2.conf and offer
+        // to restart now to apply it (same restart-to-apply pattern as the RPC
+        // "listen on all interfaces" toggle). It still rides the normal limits
+        // payload harmlessly, so it doesn't need its own live RPC call.
+        async applyDiskCache() {
+            this.saveSettings();
+            await this._persistLimitsToConfig();
+            if (!(this.svc && this.svc.active)) {
+                this.toast('Disk cache saved — it applies when aria2 next starts.', 'info');
+                return;
+            }
+            const ok = await this.confirmDialog(
+                'Restart aria2?',
+                'Disk cache is a startup option, so it only applies after aria2 restarts. Restart now to apply it? Active downloads resume automatically.'
+            );
+            if (!ok) { this.toast('Disk cache saved — it applies the next time aria2 restarts.', 'info'); return; }
+            try {
+                await ManifestService.restart();
+                if (typeof this._refreshServiceState === 'function') await this._refreshServiceState();
+                this.toast('aria2 restarted — new disk cache applied.', 'success');
+            } catch (e) {
+                this.toast('Could not restart aria2: ' + ((e && e.message) || e), 'danger');
             }
         },
 
@@ -188,7 +218,9 @@
                     return;
                 }
 
-                const dir = (this.settings.destinations && this.settings.destinations.default) || home;
+                // Match setup()'s $HOME/Downloads fallback, not $HOME, so
+                // rewriting the conf never relocates a default-destination user.
+                const dir = (this.settings.destinations && this.settings.destinations.default) || ManifestUtil.joinPath(home, 'Downloads');
                 await ManifestService.writeConfig({
                     home,
                     port: verified,

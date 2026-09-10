@@ -22,6 +22,8 @@
             newFolderName: '',
             error: '',
             resolve: null,
+            pathInput: '',   // editable path field (type/paste to jump anywhere)
+            filter: '',      // client-side filter over the current folder's entries
         },
 
         openFolderPicker(startPath) {
@@ -30,6 +32,7 @@
                 this.fsPicker.selected = null;
                 this.fsPicker.newFolderName = '';
                 this.fsPicker.error = '';
+                this.fsPicker.filter = '';
                 this.fsPicker.resolve = resolve;
                 bootstrap.Modal.getOrCreateInstance(this.fsPickerEl).show();
                 this._fpList(startPath || '/');
@@ -42,15 +45,36 @@
                 const out = await FS.spawn(['find', path, '-mindepth', '1', '-maxdepth', '1', '-type', 'd', '-printf', '%f\\n']);
                 const names = String(out).split('\n').filter(Boolean).sort((a, b) => a.localeCompare(b));
                 this.fsPicker.cwd = path;
+                this.fsPicker.pathInput = path;   // keep the editable field in sync with where we are
+                this.fsPicker.filter = '';        // a fresh listing starts unfiltered
                 this.fsPicker.entries = names;
                 this.fsPicker.selected = null;
             } catch (e) {
                 this.fsPicker.cwd = path;
+                this.fsPicker.pathInput = path;
                 this.fsPicker.entries = [];
                 this.fsPicker.error = /permission denied/i.test(String(e.message || e))
                     ? 'Permission denied reading this folder.'
                     : String(e.message || e);
             }
+        },
+
+        // Navigate to a hand-typed/pasted absolute path (Enter or the Go button).
+        // A non-existent/unreadable path surfaces via _fpList's error, same as any
+        // other unreadable folder — navigate-only, we never create it here.
+        _fpGoPath(path) {
+            const p = (path == null ? this.fsPicker.pathInput : path || '').trim();
+            if (!p) return;
+            this._fpList(p);
+        },
+
+        // Entries filtered by the search box (case-insensitive substring). The
+        // filter narrows the CURRENT folder's list only — it is not a recursive
+        // filesystem search (that would hammer a network mount with a deep find).
+        _fpFilteredEntries() {
+            const f = (this.fsPicker.filter || '').trim().toLowerCase();
+            if (!f) return this.fsPicker.entries;
+            return this.fsPicker.entries.filter((n) => n.toLowerCase().indexOf(f) !== -1);
         },
 
         _fpBreadcrumb() {

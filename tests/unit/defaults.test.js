@@ -317,19 +317,35 @@ test('toAria2GlobalOptions falls back to DEFAULT_SETTINGS.limits when settings/l
         'max-overall-download-limit': '0',
         'max-overall-upload-limit': '0',
         'seed-ratio': '1',
-        'seed-time': '0'
+        'seed-time': '0',
+        'disk-cache': '64M'
     };
     assert.deepEqual(fromUndefined, expected);
     assert.deepEqual(fromEmpty, expected);
 });
 
-test('toAria2GlobalOptions produces exactly the nine documented keys', () => {
+test('toAria2GlobalOptions produces exactly the ten documented keys', () => {
     const o = D.toAria2GlobalOptions(D.mergeSettings({}));
     assert.deepEqual(Object.keys(o).sort(), [
-        'bt-max-peers', 'max-concurrent-downloads', 'max-connection-per-server',
+        'bt-max-peers', 'disk-cache', 'max-concurrent-downloads', 'max-connection-per-server',
         'max-overall-download-limit', 'max-overall-upload-limit', 'min-split-size',
         'seed-ratio', 'seed-time', 'split'
     ].sort());
+});
+
+test('toAria2GlobalOptions: diskCacheMiB becomes "<n>M", 0 disables ("0"), invalid falls back to default', () => {
+    assert.equal(D.toAria2GlobalOptions(D.mergeSettings({ limits: { diskCacheMiB: 128 } }))['disk-cache'], '128M');
+    assert.equal(D.toAria2GlobalOptions(D.mergeSettings({ limits: { diskCacheMiB: 0 } }))['disk-cache'], '0');
+    assert.equal(D.toAria2GlobalOptions(D.mergeSettings({ limits: { diskCacheMiB: 64 } }))['disk-cache'], '64M');
+    // NaN/garbage must NOT silently disable the cache — fall back to the 64M default
+    assert.equal(D.toAria2GlobalOptions({ limits: { diskCacheMiB: 'oops' } })['disk-cache'], '64M');
+    assert.equal(D.toAria2GlobalOptions({ limits: { diskCacheMiB: -5 } })['disk-cache'], '64M');
+});
+
+test('diskCacheMiB default is 64 and survives mergeSettings', () => {
+    assert.equal(D.DEFAULT_SETTINGS.limits.diskCacheMiB, 64);
+    assert.equal(D.mergeSettings({}).limits.diskCacheMiB, 64);
+    assert.equal(D.mergeSettings({ limits: { diskCacheMiB: 256 } }).limits.diskCacheMiB, 256);
 });
 
 test('theme default is "system" and survives round-trip through mergeSettings with no override', () => {

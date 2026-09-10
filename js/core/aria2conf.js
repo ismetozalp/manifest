@@ -38,9 +38,9 @@
             // download looks like it grabbed everything. With none, files grow as
             // data arrives and unselected files stay empty.
             'file-allocation=none',
-            // disk-cache: buffer writes in RAM so a slow/network disk is flushed
-            // less often (fewer stalls). aria2 default is 16M.
-            'disk-cache=64M',
+            // NB: disk-cache is NOT fixed here — it's a user setting
+            // (limits.diskCacheMiB, default 64M) emitted via toAria2GlobalOptions
+            // into the limits map below, so it can be changed live and persisted.
             // bt-remove-unselected-file: when you download a subset of a torrent's
             // files, drop the unselected ones on completion instead of leaving
             // empty placeholders behind.

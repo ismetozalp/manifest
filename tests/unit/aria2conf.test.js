@@ -22,10 +22,11 @@ test('conf has rpc + isolation + session + tuning', () => {
     assert.match(conf, /input-file=\/home\/u\/\.config\/cockpit\/manifest\/aria2\.session/);
     assert.match(conf, /max-concurrent-downloads=5/);
     assert.match(conf, /bt-max-peers=55/);
-    // network-mount friendliness: no pre-allocation stalls, buffered writes,
-    // and drop unselected torrent files
+    // network-mount friendliness: no pre-allocation stalls and drop unselected
+    // torrent files. (disk-cache is no longer a fixed line — it's a user setting
+    // emitted via toAria2GlobalOptions; covered in defaults.test.js.)
     assert.match(conf, /^file-allocation=none$/m);
-    assert.match(conf, /^disk-cache=64M$/m);
+    assert.doesNotMatch(conf, /^disk-cache=/m);   // not fixed here anymore
     assert.match(conf, /^bt-remove-unselected-file=true$/m);
 });
 test('unit runs aria2 with conf path as user service', () => {
@@ -73,8 +74,9 @@ test('confText: empty limits object appends no extra lines beyond the fixed set'
     const withEmptyLimits = C.confText({ home: '/h', port: 1, secret: 's', dir: '/d', limits: {} });
     const withNoLimitsKey = C.confText({ home: '/h', port: 1, secret: 's', dir: '/d' });
     assert.equal(withEmptyLimits, withNoLimitsKey);
-    // exactly the 15 fixed config lines when no limits entries are present
-    assert.equal(withEmptyLimits.split('\n').filter(Boolean).length, 15);
+    // exactly the 14 fixed config lines when no limits entries are present
+    // (was 15 before disk-cache moved out to the settings-driven limits map)
+    assert.equal(withEmptyLimits.split('\n').filter(Boolean).length, 14);
 });
 
 test('confText: limits map entries are emitted for every provided key, one per line', () => {

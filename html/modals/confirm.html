@@ -61,12 +61,24 @@
                     </ol>
                 </nav>
 
+                <!-- editable path: type/paste an absolute path and jump there -->
+                <div class="input-group input-group-sm mb-2">
+                    <span class="input-group-text">Path</span>
+                    <input type="text" class="form-control" placeholder="/absolute/path" spellcheck="false"
+                           x-model="fsPicker.pathInput" @keydown.enter.prevent="_fpGoPath()">
+                    <button type="button" class="btn btn-outline-secondary" @click="_fpGoPath()">Go</button>
+                </div>
+
                 <!-- inline error -->
                 <div class="alert alert-danger py-1 px-2 mb-2" x-show="fsPicker.error" x-text="fsPicker.error"></div>
 
+                <!-- search/filter within the current folder -->
+                <input type="search" class="form-control form-control-sm mb-2" placeholder="Search this folder…"
+                       x-model="fsPicker.filter" x-show="fsPicker.entries.length">
+
                 <!-- single folder list, no sidebar -->
                 <div class="list-group mf-fp-list" style="max-height: 320px; overflow-y: auto;">
-                    <template x-for="name in fsPicker.entries" :key="name">
+                    <template x-for="name in _fpFilteredEntries()" :key="name">
                         <button type="button" class="list-group-item list-group-item-action"
                                 @dblclick="_fpEnter(name)"
                                 @click="fsPicker.selected = name">
@@ -76,6 +88,9 @@
                     <div class="list-group-item text-body-secondary" x-show="!fsPicker.entries.length && !fsPicker.error">
                         (no subfolders)
                     </div>
+                    <div class="list-group-item text-body-secondary"
+                         x-show="fsPicker.entries.length && !_fpFilteredEntries().length"
+                         x-text="'No folders match “' + fsPicker.filter + '”'"></div>
                 </div>
 
                 <!-- New folder -->

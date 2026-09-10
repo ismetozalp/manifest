@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.1.0
+
+### Added
+- **Configurable disk cache.** Settings → Limits now has a **Disk cache (MiB)**
+  field (default 64, `0` disables it). It's aria2's in-RAM write buffer that
+  batches disk writes — useful on network mounts. Applied live (no restart) and
+  persisted to `aria2.conf`.
+- **Editable path in the folder picker.** Every Browse dialog (Quick Add,
+  Configure, Settings) now has a path field — type or paste an absolute path and
+  press Enter/Go to jump straight there instead of clicking down the tree.
+- **Search in the folder picker.** A filter box narrows the current folder's
+  subfolders as you type (case-insensitive).
+
 ## 2.0.3
 
 ### Fixed

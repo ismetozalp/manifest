@@ -89,6 +89,38 @@ try {
     // v2.0.2: RPC "listen on all interfaces" toggle
     check('settings has the RPC listen-on-all-interfaces toggle',
         await app.locator('#mfSettings #mfListenAll').count() === 1 && /Listen on all interfaces/i.test(settingsText));
+    // v2.1.0: disk-cache is a user setting in the Limits section (live-applied)
+    check('settings has a Disk cache (MiB) field bound to limits.diskCacheMiB',
+        await app.locator('#mfSettings input[x-model\\.number="settings.limits.diskCacheMiB"]').count() === 1
+        && /Disk cache/i.test(settingsText));
+    const dcOpt = await app.evaluate(() =>
+        window.ManifestDefaults.toAria2GlobalOptions(window.ManifestDefaults.mergeSettings({ limits: { diskCacheMiB: 128 } }))['disk-cache']);
+    check('disk-cache flows into aria2 global options as "<n>M"', dcOpt === '128M', dcOpt);
+
+    // v2.1.0: folder picker gains an editable path field + a search/filter box
+    check('folder picker has an editable path field + a search box',
+        await app.locator('#mfFolderPicker input[x-model="fsPicker.pathInput"]').count() === 1
+        && await app.locator('#mfFolderPicker input[x-model="fsPicker.filter"]').count() === 1);
+    const pick = await app.evaluate(async () => {
+        const d = window.Alpine.$data(document.querySelector('[x-data]'));
+        d.fsPicker.entries = ['Movies', 'Music', 'movies-2', 'Docs'];
+        d.fsPicker.filter = 'mov';                          // case-insensitive substring
+        const filtered = d._fpFilteredEntries();
+        d.fsPicker.filter = '';
+        const unfiltered = d._fpFilteredEntries().length;
+        let navTo = null; const realList = d._fpList;        // capture where a typed path navigates
+        d._fpList = (p) => { navTo = p; return Promise.resolve(); };
+        d.fsPicker.pathInput = '  /mnt/nas/films  ';
+        d._fpGoPath();
+        d._fpGoPath('   ');                                  // blank input must not navigate
+        const navToAfterBlank = navTo;
+        d._fpList = realList; d.fsPicker.entries = []; d.fsPicker.filter = '';
+        return { filtered, unfiltered, navTo, navToAfterBlank };
+    });
+    check('picker search filters the current folder case-insensitively',
+        JSON.stringify(pick.filtered) === JSON.stringify(['Movies', 'movies-2']) && pick.unfiltered === 4, JSON.stringify(pick));
+    check('picker path field navigates to the trimmed typed path (blank is ignored)',
+        pick.navTo === '/mnt/nas/films' && pick.navToAfterBlank === '/mnt/nas/films');
 
     // Apply every theme; assert data-bs-theme + readable header contrast (light on dark, or dark on light)
     const themeIds = await app.evaluate(() => (window.ManifestThemes ? window.ManifestThemes.THEMES.map(t => t.id) : []));

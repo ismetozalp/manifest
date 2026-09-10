@@ -18,7 +18,8 @@
             downloadLimitKiB: 0,                    // max-overall-download-limit (0 = unlimited)
             uploadLimitKiB: 0,                      // max-overall-upload-limit
             seedRatio: 1.0,                         // seed-ratio (per torrent)
-            seedTimeMin: 0                          // seed-time minutes (0 = disabled)
+            seedTimeMin: 0,                         // seed-time minutes (0 = disabled)
+            diskCacheMiB: 64                        // disk-cache (RAM write buffer; 0 = disabled, aria2 default 16M)
         },
         update: { repo: 'ismetozalp/manifest', checkOnStartup: true },
         // Detail dialogs the user minimized to the bottom taskbar, persisted so
@@ -67,6 +68,13 @@
     function toAria2GlobalOptions(settings) {
         const limits = (settings && settings.limits) || DEFAULT_SETTINGS.limits;
         const maxConn = Math.max(1, Math.min(16, Number(limits.maxConnectionsPerServer) || 0));
+        // disk-cache: a non-negative MiB buffer; 0 disables the cache. Fall back
+        // to the 64M default when the value is missing/invalid rather than 0, so a
+        // malformed setting doesn't silently turn the cache off.
+        const dcMiB = Number(limits.diskCacheMiB);
+        const diskCache = Number.isFinite(dcMiB) && dcMiB >= 0
+            ? (dcMiB > 0 ? dcMiB + 'M' : '0')
+            : DEFAULT_SETTINGS.limits.diskCacheMiB + 'M';
         return {
             'max-concurrent-downloads': String(limits.maxConcurrentDownloads),
             'max-connection-per-server': String(maxConn),
@@ -76,7 +84,8 @@
             'max-overall-download-limit': speedOpt(limits.downloadLimitKiB),
             'max-overall-upload-limit': speedOpt(limits.uploadLimitKiB),
             'seed-ratio': String(limits.seedRatio),
-            'seed-time': String(limits.seedTimeMin)
+            'seed-time': String(limits.seedTimeMin),
+            'disk-cache': diskCache
         };
     }
 
